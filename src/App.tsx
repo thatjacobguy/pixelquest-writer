@@ -232,6 +232,7 @@ export default function App() {
   const [challengeSuccess, setChallengeSuccess] = useState<boolean | null>(null);
   const [challengeWordTarget, setChallengeWordTarget] = useState<number | null>(null);
   const [challengeRewards, setChallengeRewards] = useState<{ xp: number; gold: number } | null>(null);
+  const [challengeStartWords, setChallengeStartWords] = useState<number>(0);
 
   // Local Folder Sync State
   const [localFolderHandle, setLocalFolderHandle] = useState<FileSystemDirectoryHandle | null>(null);
@@ -782,8 +783,18 @@ export default function App() {
     // Set active quest in document
     handleSetQuestInDoc(questId, false);
     
-    // Clear document contents so player starts a fresh timed battle!
-    handleUpdateContent('');
+    // Snapshot the current chapter word count so challenge tracks NEW words only
+    const currentDoc = documents.find((d) => d.id === activeDocId);
+    if (currentDoc) {
+      const activeChapter = currentDoc.chapters.find((ch) => ch.id === currentDoc.activeChapterId) || currentDoc.chapters[0];
+      const currentWordCount = activeChapter?.content
+        ? activeChapter.content.trim().split(/\s+/).filter(Boolean).length
+        : 0;
+      setChallengeStartWords(currentWordCount);
+    } else {
+      setChallengeStartWords(0);
+    }
+
     setActiveView('editor');
   };
 
@@ -1549,6 +1560,7 @@ export default function App() {
               challengeSuccess={challengeSuccess}
               challengeWordTarget={challengeWordTarget}
               challengeRewards={challengeRewards}
+              challengeStartWords={challengeStartWords}
               onStartChallenge={handleStartChallenge}
               onCancelChallenge={handleCancelChallenge}
               onClaimProgressionQuest={handleClaimProgressionQuest}
@@ -1659,6 +1671,7 @@ export default function App() {
             challengeSuccess={challengeSuccess}
             challengeWordTarget={challengeWordTarget}
             challengeRewards={challengeRewards}
+            challengeStartWords={challengeStartWords}
             onStartChallenge={handleStartChallenge}
             onCancelChallenge={handleCancelChallenge}
             onClaimProgressionQuest={handleClaimProgressionQuest}

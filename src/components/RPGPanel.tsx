@@ -112,6 +112,7 @@ interface RPGPanelProps {
   challengeSuccess: boolean | null;
   challengeWordTarget: number | null;
   challengeRewards: { xp: number; gold: number } | null;
+  challengeStartWords?: number;
   onStartChallenge: (questId: string, durationSeconds: number, wordTarget: number, xpReward: number, goldReward: number) => void;
   onCancelChallenge: () => void;
   onClaimProgressionQuest: (questId: string, xp: number, gold: number) => void;
@@ -133,6 +134,7 @@ export default function RPGPanel({
   challengeSuccess,
   challengeWordTarget,
   challengeRewards,
+  challengeStartWords = 0,
   onStartChallenge,
   onCancelChallenge,
   onClaimProgressionQuest,
@@ -176,7 +178,9 @@ export default function RPGPanel({
     : 0;
 
   const currentWords = challengeActive ? activeChapterWords : totalWords;
-  const startWords = challengeActive ? 0 : (activeDoc ? activeDoc.battleStartWords || 0 : 0);
+  // During a challenge, startWords is the snapshot taken at challenge start so we
+  // only count words typed DURING the timer — not pre-existing content.
+  const startWords = challengeActive ? challengeStartWords : (activeDoc ? activeDoc.battleStartWords || 0 : 0);
   const runWords = Math.max(0, currentWords - startWords);
 
   const activeQuest = activeDoc
