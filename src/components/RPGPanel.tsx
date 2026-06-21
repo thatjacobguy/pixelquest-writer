@@ -289,13 +289,7 @@ export default function RPGPanel({
           }
         }
       } else if (runWords < prevWordCount.current) {
-        // Regain health / healing logic when words are deleted
-        sound.playHit();
-        
         const diff = prevWordCount.current - runWords;
-        if (!challengeActive && onAddNormalWords) {
-          onAddNormalWords(-diff);
-        }
 
         // Calculate healing multiplier (same logic as damage)
         let multiplier = 1.0;
@@ -313,22 +307,31 @@ export default function RPGPanel({
         if (hasCritItem) multiplier += 0.30;
         if (hasUltItem) multiplier += 0.50;
 
-        const healing = Math.round(diff * multiplier);
-        if (onDealDamage) {
-          onDealDamage(-healing); // Subtraction reduces battleDamageDealt
-        }
+        const rawHealing = Math.round(diff * multiplier);
+        const currentDamageDealt = activeDoc?.battleDamageDealt || 0;
+        const healing = Math.min(rawHealing, currentDamageDealt);
 
-        setFloatingDmg((prev) => [
-          ...prev,
-          {
-            id: dmgId,
-            text: `+${healing} WP`,
-            x: 35 + Math.random() * 30,
-            y: 25 + Math.random() * 20,
-            isHeal: true,
-          },
-        ]);
-        setDmgId((id) => id + 1);
+        if (healing > 0) {
+          sound.playHit();
+          if (!challengeActive && onAddNormalWords) {
+            onAddNormalWords(-diff);
+          }
+          if (onDealDamage) {
+            onDealDamage(-healing); // Subtraction reduces battleDamageDealt
+          }
+
+          setFloatingDmg((prev) => [
+            ...prev,
+            {
+              id: dmgId,
+              text: `+${healing} WP`,
+              x: 35 + Math.random() * 30,
+              y: 25 + Math.random() * 20,
+              isHeal: true,
+            },
+          ]);
+          setDmgId((id) => id + 1);
+        }
       }
     }
     prevWordCount.current = runWords;
