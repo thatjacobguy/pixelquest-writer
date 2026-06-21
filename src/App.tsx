@@ -7,6 +7,7 @@ import SettingsModal from './components/SettingsModal';
 import { sound } from './utils/audio';
 import { saveFolderHandle, getFolderHandle } from './utils/db';
 import { Settings, Sparkles, Music, ChevronDown } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 
 export interface Chapter {
   id: string;
@@ -1184,6 +1185,9 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Vercel Web Analytics */}
+      <Analytics />
     </div>
   );
 }
