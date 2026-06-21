@@ -1,6 +1,6 @@
 // IndexedDB helper to persist FileSystemDirectoryHandle (which localStorage cannot store)
 
-export async function saveFolderHandle(handle: FileSystemDirectoryHandle | null): Promise<void> {
+export async function saveFolderHandle(handle: FileSystemDirectoryHandle | null, username?: string): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const request = indexedDB.open('pixelquest_db', 1);
     
@@ -14,11 +14,12 @@ export async function saveFolderHandle(handle: FileSystemDirectoryHandle | null)
       const db = request.result;
       const tx = db.transaction('handles', 'readwrite');
       const store = tx.objectStore('handles');
+      const key = username ? `local_folder_${username}` : 'local_folder';
       
       if (handle) {
-        store.put(handle, 'local_folder');
+        store.put(handle, key);
       } else {
-        store.delete('local_folder');
+        store.delete(key);
       }
       
       tx.oncomplete = () => {
@@ -35,7 +36,7 @@ export async function saveFolderHandle(handle: FileSystemDirectoryHandle | null)
   });
 }
 
-export async function getFolderHandle(): Promise<FileSystemDirectoryHandle | null> {
+export async function getFolderHandle(username?: string): Promise<FileSystemDirectoryHandle | null> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open('pixelquest_db', 1);
     
@@ -49,7 +50,8 @@ export async function getFolderHandle(): Promise<FileSystemDirectoryHandle | nul
       const db = request.result;
       const tx = db.transaction('handles', 'readonly');
       const store = tx.objectStore('handles');
-      const getReq = store.get('local_folder');
+      const key = username ? `local_folder_${username}` : 'local_folder';
+      const getReq = store.get(key);
       
       getReq.onsuccess = () => {
         db.close();
@@ -65,3 +67,4 @@ export async function getFolderHandle(): Promise<FileSystemDirectoryHandle | nul
     request.onerror = () => resolve(null); // Fallback gracefully if blocked
   });
 }
+

@@ -83,6 +83,14 @@ export const getMonsterData = (theme: string, questId: string): ThemedMonster =>
       ghost: { name: 'Holo Simulation', description: 'A glitched holodeck defense matrix. Dissolve it with 1000 words.', monsterType: 'space_holo' },
       wyrm: { name: 'Nebula Leviathan', description: 'A colossal space eel lurks in the nebula. Outrun it with 2500 words.', monsterType: 'space_leviathan' },
       alien: { name: 'Star Devourer', description: 'A cosmic worm eating stellar clusters. Save the galaxy with 5000 words.', monsterType: 'space_devourer' }
+    },
+    witch: {
+      slime: { name: 'Mischievous Imp', description: 'A tiny purple imp is stealing your potion ingredients. Chase it away with 100 words.', monsterType: 'witch_imp' },
+      bat: { name: 'Shadow Familiar', description: 'A shadowy black cat familiar blocks your cauldron. Pacify it with 250 words.', monsterType: 'witch_cat' },
+      golem: { name: 'Cursed Scarecrow', description: 'A living scarecrow from the pumpkin patch blocks the road. Burn it with 500 words.', monsterType: 'witch_scarecrow' },
+      ghost: { name: 'Swamp Hag', description: 'A rival swamp witch tries to steal your spellbook. Out-spell her with 1000 words.', monsterType: 'witch_hag' },
+      wyrm: { name: 'Bog Basilisk', description: 'A venomous giant lizard crawls out of the toxic bog. Slay it with 2500 words.', monsterType: 'witch_basilisk' },
+      alien: { name: 'Cthulhu Spawn', description: 'An ancient tentacled monstrosity rises from the swamp depths. Banish it with 5000 words!', monsterType: 'witch_cthulhu' }
     }
   };
 
@@ -143,6 +151,7 @@ export default function RPGPanel({
       case 'cozy': return 'Coffee Barista';
       case 'horror': return 'Gothic Necromancer';
       case 'spaceship': return 'Star Pilot';
+      case 'witch': return 'Swamp Sorcerer';
       case 'fantasy':
       default: return 'Heroic Scribe';
     }
@@ -590,6 +599,80 @@ export default function RPGPanel({
             <circle cx="68" cy="62" r="1.2" fill="#fff" opacity="0.9" />
             <circle cx="90" cy="50" r="8.5" fill="#0f172a" stroke="#0891b2" strokeWidth="2.5" />
             <path d="M 87 48 Q 91 45 94 49" fill="none" stroke="#22d3ee" strokeWidth="2.5" strokeLinecap="round" />
+          </svg>
+        );
+      case 'witch_imp':
+        return (
+          <svg viewBox="0 0 100 100" style={baseStyle}>
+            <circle cx="50" cy="60" r="18" fill="#6d28d9" stroke="#4c1d95" strokeWidth="3" />
+            <path d="M38 48 Q32 30 25 35" fill="none" stroke="#4c1d95" strokeWidth="4" strokeLinecap="round" />
+            <path d="M62 48 Q68 30 75 35" fill="none" stroke="#4c1d95" strokeWidth="4" strokeLinecap="round" />
+            <circle cx="44" cy="56" r="3.5" fill="#facc15" />
+            <circle cx="56" cy="56" r="3.5" fill="#facc15" />
+            <circle cx="44" cy="56" r="1" fill="#000" />
+            <circle cx="56" cy="56" r="1" fill="#000" />
+            <path d="M46 68 Q50 72 54 68" fill="none" stroke="#000" strokeWidth="2" />
+          </svg>
+        );
+      case 'witch_cat':
+        return (
+          <svg viewBox="0 0 100 100" style={baseStyle}>
+            <polygon points="32,25 40,45 25,40" fill="#1e1b4b" stroke="#0f172a" strokeWidth="3" />
+            <polygon points="68,25 60,45 75,40" fill="#1e1b4b" stroke="#0f172a" strokeWidth="3" />
+            <circle cx="50" cy="50" r="18" fill="#1e1b4b" stroke="#0f172a" strokeWidth="3" />
+            <ellipse cx="50" cy="72" rx="14" ry="18" fill="#1e1b4b" stroke="#0f172a" strokeWidth="3" />
+            <rect x="39" y="62" width="22" height="4" fill="#a21caf" rx="1" />
+            <circle cx="44" cy="46" r="3.5" fill="#a3ff1a" />
+            <circle cx="56" cy="46" r="3.5" fill="#a3ff1a" />
+            <line x1="44" y1="43" x2="44" y2="49" stroke="#000" strokeWidth="1.5" />
+            <line x1="56" y1="43" x2="56" y2="49" stroke="#000" strokeWidth="1.5" />
+          </svg>
+        );
+      case 'witch_scarecrow':
+        return (
+          <svg viewBox="0 0 100 100" style={baseStyle}>
+            <rect x="47" y="10" width="6" height="85" fill="#713f12" />
+            <rect x="15" y="42" width="70" height="6" fill="#713f12" />
+            <polygon points="50,15 25,35 75,35" fill="#3b0764" />
+            <circle cx="50" cy="48" r="14" fill="#ea580c" stroke="#9a3412" strokeWidth="3" />
+            <polygon points="42,44 46,48 38,48" fill="#000" />
+            <polygon points="58,44 62,48 54,48" fill="#000" />
+            <path d="M 40 56 L 43 53 L 47 56 L 50 53 L 53 56 L 57 53 L 60 56" fill="none" stroke="#000" strokeWidth="2.5" />
+          </svg>
+        );
+      case 'witch_hag':
+        return (
+          <svg viewBox="0 0 100 100" style={baseStyle}>
+            <path d="M 15 50 Q 50 5 60 10 T 85 50 Z" fill="#090514" stroke="#8a2be2" strokeWidth="2.5" />
+            <circle cx="50" cy="62" r="14" fill="#16a34a" stroke="#14532d" strokeWidth="2.5" />
+            <path d="M48 62 L42 66 L48 68" fill="none" stroke="#14532d" strokeWidth="2.5" strokeLinecap="round" />
+            <circle cx="56" cy="58" r="2.5" fill="#ff00ff" />
+            <circle cx="44" cy="58" r="2.5" fill="#ff00ff" />
+            <circle cx="43" cy="65" r="1.2" fill="#b91c1c" />
+          </svg>
+        );
+      case 'witch_basilisk':
+        return (
+          <svg viewBox="0 0 100 100" style={baseStyle}>
+            <path d="M20 75 Q40 55 50 75 T80 75" fill="none" stroke="#15803d" strokeWidth="12" strokeLinecap="round" />
+            <path d="M30 65 Q50 45 60 65 T90 65" fill="none" stroke="#1e1b4b" strokeWidth="8" strokeLinecap="round" />
+            <circle cx="30" cy="45" r="10" fill="#1e1b4b" stroke="#0f172a" strokeWidth="2.5" />
+            <circle cx="28" cy="42" r="2" fill="#ff00ff" />
+            <path d="M 20 47 Q 10 50 15 55" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
+          </svg>
+        );
+      case 'witch_cthulhu':
+        return (
+          <svg viewBox="0 0 100 100" style={baseStyle}>
+            <path d="M10 30 Q30 20 40 55 C30 50 20 55 10 30 Z" fill="#064e3b" stroke="#022c22" strokeWidth="2.5" />
+            <path d="M90 30 Q70 20 60 55 C70 50 80 55 90 30 Z" fill="#064e3b" stroke="#022c22" strokeWidth="2.5" />
+            <circle cx="50" cy="48" r="18" fill="#047857" stroke="#022c22" strokeWidth="3" />
+            <circle cx="43" cy="42" r="3.5" fill="#ea580c" />
+            <circle cx="57" cy="42" r="3.5" fill="#ea580c" />
+            <path d="M 44 54 Q 40 78 35 72" fill="none" stroke="#022c22" strokeWidth="4" strokeLinecap="round" />
+            <path d="M 48 56 Q 48 82 46 76" fill="none" stroke="#022c22" strokeWidth="4" strokeLinecap="round" />
+            <path d="M 52 56 Q 52 82 54 76" fill="none" stroke="#022c22" strokeWidth="4" strokeLinecap="round" />
+            <path d="M 56 54 Q 60 78 65 72" fill="none" stroke="#022c22" strokeWidth="4" strokeLinecap="round" />
           </svg>
         );
       case 'space_devourer':

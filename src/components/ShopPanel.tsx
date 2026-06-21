@@ -204,6 +204,54 @@ export const SPACESHIP_SHOP_ITEMS: ShopItem[] = [
   },
 ];
 
+export const WITCH_SHOP_ITEMS: ShopItem[] = [
+  {
+    id: 'black_candle',
+    name: 'Black Candle',
+    price: 300,
+    description: 'A ritual candle to focus your witchcraft. Increases XP rewards by 15%.',
+    icon: '🕯️',
+    effect: '+15% XP Gain',
+    levelRequired: 1,
+  },
+  {
+    id: 'crystal_ball',
+    name: 'Crystal Ball',
+    price: 600,
+    description: 'A scrying sphere to forecast fortunes. Increases Gold rewards by 20%.',
+    icon: '🔮',
+    effect: '+20% Gold Gain',
+    levelRequired: 3,
+  },
+  {
+    id: 'witch_broom',
+    name: 'Flying Broomstick',
+    price: 1000,
+    description: 'A sweeping birch broom infused with flight. Deals +25% hex damage to bog monsters.',
+    icon: '🧹',
+    effect: '+25% Hex Damage',
+    levelRequired: 5,
+  },
+  {
+    id: 'witches_brew',
+    name: 'Witches Brew',
+    price: 1600,
+    description: 'A bubbling cauldron concoction of swamp herbs. Deals +30% spell damage and +20% critical hit chance.',
+    icon: '🧪',
+    effect: '+30% Damage & +20% Crit',
+    levelRequired: 8,
+  },
+  {
+    id: 'dark_grimoire',
+    name: 'Dark Grimoire',
+    price: 4500,
+    description: 'The ultimate book of swamp hexes and elder spells. Deals +50% ultimate grimoire damage.',
+    icon: '📓',
+    effect: '+50% Ultimate Damage',
+    levelRequired: 12,
+  },
+];
+
 // Helper to get shop items by theme
 export const getShopItemsByTheme = (theme: string): ShopItem[] => {
   switch (theme) {
@@ -213,6 +261,8 @@ export const getShopItemsByTheme = (theme: string): ShopItem[] => {
       return GOTHIC_SHOP_ITEMS;
     case 'spaceship':
       return SPACESHIP_SHOP_ITEMS;
+    case 'witch':
+      return WITCH_SHOP_ITEMS;
     case 'fantasy':
     default:
       return FANTASY_SHOP_ITEMS;
@@ -242,6 +292,8 @@ export default function ShopPanel({
         return '💀 "Ah, another soul wandering the dark... What secrets do you seek to purchase...?"';
       case 'spaceship':
         return '🤖 "STAR MERCHANT LOG: Uplink established. Trade goods database active..."';
+      case 'witch':
+        return '🔮 "Double, double, toil and trouble! Exchange your gold for forbidden swamp reagents..."';
       case 'fantasy':
       default:
         return '🧙‍♂️ "Welcome to the Scribe’s Guild shop, traveler! Trade your gold for writing relics!"';
@@ -256,6 +308,8 @@ export default function ShopPanel({
         return "Cursed Crypt Relics";
       case 'spaceship':
         return "Space Merchant Terminal";
+      case 'witch':
+        return "Coven Alchemist Brews";
       case 'fantasy':
       default:
         return "Ye Olde Scriptorium Shop";
@@ -270,6 +324,8 @@ export default function ShopPanel({
         return 'Back to Crypt';
       case 'spaceship':
         return 'Back to Cockpit';
+      case 'witch':
+        return 'Back to Swamp';
       case 'fantasy':
       default:
         return 'Back to Tavern';

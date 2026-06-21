@@ -4,9 +4,11 @@ import Editor from './components/Editor';
 import RPGPanel, { QUEST_CONFIGS } from './components/RPGPanel';
 import ShopPanel from './components/ShopPanel';
 import SettingsModal from './components/SettingsModal';
+import AuthPage from './components/AuthPage';
 import { sound } from './utils/audio';
 import { saveFolderHandle, getFolderHandle } from './utils/db';
-import { Settings, Sparkles, Music, ChevronDown } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from './utils/supabase';
+import { Settings, Sparkles, Music, ChevronDown, LogOut } from 'lucide-react';
 
 export interface Chapter {
   id: string;
@@ -38,6 +40,8 @@ export interface CharacterStats {
   gold: number;
   inventory: string[];
   normalWordsWritten: number;
+  monstersSlainCount?: number;
+  witchThemeUnlocked?: boolean;
 }
 
 const DEFAULT_STATS: CharacterStats = {
@@ -47,6 +51,8 @@ const DEFAULT_STATS: CharacterStats = {
   gold: 0,
   inventory: [],
   normalWordsWritten: 0,
+  monstersSlainCount: 0,
+  witchThemeUnlocked: false,
 };
 
 const DEFAULT_DOCS: Document[] = [
@@ -71,94 +77,136 @@ const DEFAULT_DOCS: Document[] = [
   },
 ];
 
-// Helper to parse and migrate documents from legacy format
-const getInitialDocs = (): Document[] => {
-  const saved = localStorage.getItem('pixelquest_docs');
-  if (!saved) return DEFAULT_DOCS;
-  try {
-    const parsed = JSON.parse(saved);
-    if (Array.isArray(parsed)) {
-      return parsed.map((doc: any) => {
-        if (!doc.chapters) {
-          const chId = `${doc.id}-ch1`;
-          return {
-            id: doc.id,
-            title: doc.title || 'Untitled',
-            chapters: [
-              {
-                id: chId,
-                title: 'Chapter 1',
-                content: doc.content || '',
-              },
-            ],
-            activeChapterId: chId,
-            wordGoal: doc.wordGoal || 100,
-            questId: doc.questId || '',
-            questCompleted: doc.questCompleted || false,
-            lastModified: doc.lastModified || Date.now(),
-            driveFileId: doc.driveFileId,
-            claimedQuests: doc.claimedQuests || [],
-            battleMode: 'progression',
-            selectedMonsterId: '',
-          };
-        }
-        if (!doc.battleMode) {
-          return {
-            ...doc,
-            battleMode: 'progression',
-            selectedMonsterId: '',
-          };
-        }
-        return doc;
-      });
-    }
-  } catch (e) {
-    console.error('Failed to parse saved documents:', e);
-  }
-  return DEFAULT_DOCS;
-};
+
 
 export default function App() {
+  // Authentication State
+  const [activeUser, setActiveUser] = useState<string | null>(() => {
+    return localStorage.getItem('pixelquest_active_user');
+  });
+
   // Global States
-  const [documents, setDocuments] = useState<Document[]>(getInitialDocs);
+  const [documents, setDocuments] = useState<Document[]>(() => {
+    const user = localStorage.getItem('pixelquest_active_user');
+    if (!user) return DEFAULT_DOCS;
+    const userDocsKey = `pixelquest_${user}_docs`;
+    const saved = localStorage.getItem(userDocsKey);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    // Check migration from legacy
+    const legacy = localStorage.getItem('pixelquest_docs');
+    if (legacy) {
+      try {
+        const parsed = JSON.parse(legacy);
+        localStorage.setItem(userDocsKey, legacy);
+        return parsed;
+      } catch (e) {}
+    }
+    return DEFAULT_DOCS;
+  });
 
   const [activeDocId, setActiveDocId] = useState<string | null>(() => {
-    const saved = localStorage.getItem('pixelquest_active_doc_id');
-    return saved || (DEFAULT_DOCS[0]?.id || null);
+    const user = localStorage.getItem('pixelquest_active_user');
+    if (!user) return DEFAULT_DOCS[0]?.id || null;
+    const userKey = `pixelquest_${user}_active_doc_id`;
+    const saved = localStorage.getItem(userKey);
+    if (saved) return saved;
+    // Check legacy
+    const legacy = localStorage.getItem('pixelquest_active_doc_id');
+    if (legacy) {
+      localStorage.setItem(userKey, legacy);
+      return legacy;
+    }
+    return DEFAULT_DOCS[0]?.id || null;
   });
 
   const [stats, setStats] = useState<CharacterStats>(() => {
-    const activeTheme = localStorage.getItem('pixelquest_theme') || 'fantasy';
-    const savedThemeStats = localStorage.getItem(`pixelquest_stats_${activeTheme}`);
-    if (savedThemeStats) {
-      const parsed = JSON.parse(savedThemeStats);
-      if (parsed.normalWordsWritten === undefined) {
-        parsed.normalWordsWritten = 0;
-      }
-      return parsed;
+    const user = localStorage.getItem('pixelquest_active_user');
+    const activeTheme = (user ? localStorage.getItem(`pixelquest_${user}_theme`) : null) || localStorage.getItem('pixelquest_theme') || 'fantasy';
+    if (!user) return DEFAULT_STATS;
+    const userStatsKey = `pixelquest_${user}_stats_${activeTheme}`;
+    const saved = localStorage.getItem(userStatsKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.normalWordsWritten === undefined) {
+          parsed.normalWordsWritten = 0;
+        }
+        return { ...DEFAULT_STATS, ...parsed };
+      } catch (e) {}
     }
-    
-    // Check if there are legacy global stats to migrate
-    const legacyStats = localStorage.getItem('pixelquest_stats');
-    if (legacyStats) {
-      const parsed = JSON.parse(legacyStats);
-      if (parsed.normalWordsWritten === undefined) {
-        parsed.normalWordsWritten = 0;
-      }
-      localStorage.setItem(`pixelquest_stats_${activeTheme}`, JSON.stringify(parsed));
-      localStorage.removeItem('pixelquest_stats');
-      return parsed;
+    // Check migration from legacy
+    const legacyThemeStats = localStorage.getItem(`pixelquest_stats_${activeTheme}`);
+    if (legacyThemeStats) {
+      try {
+        const parsed = JSON.parse(legacyThemeStats);
+        if (parsed.normalWordsWritten === undefined) {
+          parsed.normalWordsWritten = 0;
+        }
+        const merged = { ...DEFAULT_STATS, ...parsed };
+        localStorage.setItem(userStatsKey, JSON.stringify(merged));
+        return merged;
+      } catch (e) {}
     }
-    
     return DEFAULT_STATS;
   });
 
   const [theme, setTheme] = useState<string>(() => {
-    return localStorage.getItem('pixelquest_theme') || 'fantasy';
+    const user = localStorage.getItem('pixelquest_active_user');
+    const key = user ? `pixelquest_${user}_theme` : 'pixelquest_theme';
+    return localStorage.getItem(key) || 'fantasy';
   });
 
+  const isWitchUnlocked = useCallback(() => {
+    const user = localStorage.getItem('pixelquest_active_user');
+    const globalKey = user ? `pixelquest_${user}_witch_unlocked` : `pixelquest_witch_unlocked`;
+    if (localStorage.getItem(globalKey) === 'true') return true;
+    if (stats.witchThemeUnlocked) return true;
+    
+    // Check if any other theme stats have it unlocked
+    const themes = ['fantasy', 'cozy', 'horror', 'spaceship', 'witch'];
+    for (const t of themes) {
+      const userKey = user ? `pixelquest_${user}_stats_${t}` : `pixelquest_stats_${t}`;
+      const saved = localStorage.getItem(userKey);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.witchThemeUnlocked) {
+            localStorage.setItem(globalKey, 'true');
+            return true;
+          }
+        } catch (e) {}
+      }
+    }
+    return false;
+  }, [stats.witchThemeUnlocked]);
+
+  const getMaxMonstersSlain = useCallback(() => {
+    const user = localStorage.getItem('pixelquest_active_user');
+    let maxSlain = stats.monstersSlainCount || 0;
+    const themes = ['fantasy', 'cozy', 'horror', 'spaceship', 'witch'];
+    for (const t of themes) {
+      const userKey = user ? `pixelquest_${user}_stats_${t}` : `pixelquest_stats_${t}`;
+      const saved = localStorage.getItem(userKey);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.monstersSlainCount && parsed.monstersSlainCount > maxSlain) {
+            maxSlain = parsed.monstersSlainCount;
+          }
+        } catch (e) {}
+      }
+    }
+    return maxSlain;
+  }, [stats.monstersSlainCount]);
+
   const [fontSize, setFontSize] = useState<string>(() => {
-    return localStorage.getItem('pixelquest_font_size') || '18px';
+    const user = localStorage.getItem('pixelquest_active_user');
+    const key = user ? `pixelquest_${user}_font_size` : 'pixelquest_font_size';
+    return localStorage.getItem(key) || '18px';
   });
 
   const themeDropdownRef = useRef<HTMLDivElement>(null);
@@ -172,6 +220,10 @@ export default function App() {
   const [musicVolume, setMusicVolume] = useState<number>(() => sound.getVolume());
   const [showLevelUpModal, setShowLevelUpModal] = useState<boolean>(false);
   const [levelUpMessage, setLevelUpMessage] = useState<string>('');
+  const [showReviewPopup, setShowReviewPopup] = useState<boolean>(false);
+  const [reviewStars, setReviewStars] = useState<number>(5);
+  const [reviewFeedback, setReviewFeedback] = useState<string>( '');
+  const [customAlert, setCustomAlert] = useState<{ title: string; message: string; buttonText?: string; themeClass?: string } | null>(null);
 
   // Challenge Mode State
   const [challengeActive, setChallengeActive] = useState<boolean>(false);
@@ -187,30 +239,40 @@ export default function App() {
 
   // Save states to local storage on changes
   useEffect(() => {
-    localStorage.setItem('pixelquest_docs', JSON.stringify(documents));
-  }, [documents]);
-
-  useEffect(() => {
-    localStorage.setItem(`pixelquest_stats_${theme}`, JSON.stringify(stats));
-  }, [stats, theme]);
-
-  useEffect(() => {
-    localStorage.setItem('pixelquest_font_size', fontSize);
-  }, [fontSize]);
-
-  useEffect(() => {
-    if (activeDocId) {
-      localStorage.setItem('pixelquest_active_doc_id', activeDocId);
-    } else {
-      localStorage.removeItem('pixelquest_active_doc_id');
+    if (activeUser) {
+      localStorage.setItem(`pixelquest_${activeUser}_docs`, JSON.stringify(documents));
     }
-  }, [activeDocId]);
+  }, [documents, activeUser]);
 
   useEffect(() => {
-    localStorage.setItem('pixelquest_theme', theme);
+    if (activeUser && theme) {
+      localStorage.setItem(`pixelquest_${activeUser}_stats_${theme}`, JSON.stringify(stats));
+    }
+  }, [stats, theme, activeUser]);
+
+  useEffect(() => {
+    if (activeUser) {
+      localStorage.setItem(`pixelquest_${activeUser}_font_size`, fontSize);
+    }
+  }, [fontSize, activeUser]);
+
+  useEffect(() => {
+    if (activeUser) {
+      if (activeDocId) {
+        localStorage.setItem(`pixelquest_${activeUser}_active_doc_id`, activeDocId);
+      } else {
+        localStorage.removeItem(`pixelquest_${activeUser}_active_doc_id`);
+      }
+    }
+  }, [activeDocId, activeUser]);
+
+  useEffect(() => {
+    if (activeUser) {
+      localStorage.setItem(`pixelquest_${activeUser}_theme`, theme);
+    }
     document.body.className = `theme-${theme}`;
     sound.changeMusicTheme(theme);
-  }, [theme]);
+  }, [theme, activeUser]);
 
   // Migration: Clear out legacy default placeholder text from chapters
   useEffect(() => {
@@ -237,11 +299,17 @@ export default function App() {
   }, []);
 
 
-  // Load Folder Handle from IndexedDB on mount
+  // Load Folder Handle from IndexedDB on mount or activeUser change
   useEffect(() => {
     const loadFolder = async () => {
+      if (!activeUser) {
+        setLocalFolderHandle(null);
+        setLocalFolderName(null);
+        setLocalFolderState('none');
+        return;
+      }
       try {
-        const handle = await getFolderHandle();
+        const handle = await getFolderHandle(activeUser);
         if (handle) {
           setLocalFolderHandle(handle);
           setLocalFolderName(handle.name);
@@ -252,13 +320,17 @@ export default function App() {
           } else {
             setLocalFolderState('needs_reauth');
           }
+        } else {
+          setLocalFolderHandle(null);
+          setLocalFolderName(null);
+          setLocalFolderState('none');
         }
       } catch (e) {
         console.error('Failed to load folder handle from IndexedDB', e);
       }
     };
     loadFolder();
-  }, []);
+  }, [activeUser]);
 
   // Programmatic background music initializer
   useEffect(() => {
@@ -471,8 +543,12 @@ export default function App() {
   // Local Folder Handlers
   const handleLinkFolder = async () => {
     if (!('showDirectoryPicker' in window)) {
-      alert('Your browser does not support the File System Access API. Please use a Chromium-based browser (Chrome, Edge, Opera) to link a local folder.');
       sound.playError();
+      setCustomAlert({
+        title: '⛔ Browser Incompatible',
+        message: 'Your browser does not support the File System Access API. Please use a Chromium-based browser (Chrome, Edge, Opera) to link a local folder.',
+        buttonText: 'Acknowledge'
+      });
       return;
     }
     try {
@@ -480,7 +556,7 @@ export default function App() {
       setLocalFolderHandle(handle);
       setLocalFolderName(handle.name);
       setLocalFolderState('connected');
-      await saveFolderHandle(handle);
+      await saveFolderHandle(handle, activeUser || undefined);
       sound.playCoin();
     } catch (e: any) {
       console.warn('Folder picker cancelled or failed', e);
@@ -492,7 +568,7 @@ export default function App() {
     setLocalFolderHandle(null);
     setLocalFolderName(null);
     setLocalFolderState('none');
-    await saveFolderHandle(null);
+    await saveFolderHandle(null, activeUser || undefined);
     sound.playHit();
   };
 
@@ -510,6 +586,101 @@ export default function App() {
       console.error('Re-authorization failed', e);
       sound.playError();
     }
+  };
+
+  const handleLogin = (username: string) => {
+    localStorage.setItem('pixelquest_active_user', username);
+    setActiveUser(username);
+    
+    // Load documents
+    const userDocsKey = `pixelquest_${username}_docs`;
+    const savedDocs = localStorage.getItem(userDocsKey);
+    let loadedDocs = DEFAULT_DOCS;
+    if (savedDocs) {
+      try {
+        loadedDocs = JSON.parse(savedDocs);
+      } catch (e) {}
+    } else {
+      // Check migration from legacy
+      const legacyDocs = localStorage.getItem('pixelquest_docs');
+      if (legacyDocs) {
+        try {
+          loadedDocs = JSON.parse(legacyDocs);
+          localStorage.setItem(userDocsKey, legacyDocs);
+        } catch (e) {}
+      }
+    }
+    setDocuments(loadedDocs);
+    
+    // Load activeDocId
+    const userActiveDocKey = `pixelquest_${username}_active_doc_id`;
+    const savedActiveDocId = localStorage.getItem(userActiveDocKey);
+    let loadedActiveDocId = loadedDocs[0]?.id || null;
+    if (savedActiveDocId) {
+      loadedActiveDocId = savedActiveDocId;
+    } else {
+      const legacyActiveDocId = localStorage.getItem('pixelquest_active_doc_id');
+      if (legacyActiveDocId) {
+        loadedActiveDocId = legacyActiveDocId;
+        localStorage.setItem(userActiveDocKey, legacyActiveDocId);
+      }
+    }
+    setActiveDocId(loadedActiveDocId);
+    
+    // Load theme
+    const userThemeKey = `pixelquest_${username}_theme`;
+    const savedTheme = localStorage.getItem(userThemeKey) || 'fantasy';
+    setTheme(savedTheme);
+    
+    // Load stats
+    const userStatsKey = `pixelquest_${username}_stats_${savedTheme}`;
+    const savedStats = localStorage.getItem(userStatsKey);
+    let loadedStats = DEFAULT_STATS;
+    if (savedStats) {
+      try {
+        loadedStats = { ...DEFAULT_STATS, ...JSON.parse(savedStats) };
+      } catch (e) {}
+    } else {
+      // Check migration from legacy
+      const legacyStats = localStorage.getItem(`pixelquest_stats_${savedTheme}`);
+      if (legacyStats) {
+        try {
+          loadedStats = { ...DEFAULT_STATS, ...JSON.parse(legacyStats) };
+          localStorage.setItem(userStatsKey, JSON.stringify(loadedStats));
+        } catch (e) {}
+      }
+    }
+    if (loadedStats.normalWordsWritten === undefined) {
+      loadedStats.normalWordsWritten = 0;
+    }
+    setStats(loadedStats);
+
+    // Load font size
+    const userFontSizeKey = `pixelquest_${username}_font_size`;
+    const savedFontSize = localStorage.getItem(userFontSizeKey) || '18px';
+    setFontSize(savedFontSize);
+  };
+
+  const handleLogout = () => {
+    // Save current stats/docs for active user before resetting state
+    if (activeUser) {
+      localStorage.setItem(`pixelquest_${activeUser}_stats_${theme}`, JSON.stringify(stats));
+      localStorage.setItem(`pixelquest_${activeUser}_docs`, JSON.stringify(documents));
+      if (activeDocId) {
+        localStorage.setItem(`pixelquest_${activeUser}_active_doc_id`, activeDocId);
+      }
+      localStorage.setItem(`pixelquest_${activeUser}_theme`, theme);
+    }
+    localStorage.removeItem('pixelquest_active_user');
+    setActiveUser(null);
+    setDocuments(DEFAULT_DOCS);
+    setActiveDocId(DEFAULT_DOCS[0]?.id || null);
+    setStats(DEFAULT_STATS);
+    setTheme('fantasy');
+    setFontSize('18px');
+    setLocalFolderHandle(null);
+    setLocalFolderName(null);
+    setLocalFolderState('none');
   };
 
   // Timed Challenge Mode Handlers
@@ -626,8 +797,12 @@ export default function App() {
       prev.map((doc) => {
         if (doc.id === docId) {
           if (doc.chapters.length <= 1) {
-            alert('A chronicle must have at least one chapter!');
             sound.playError();
+            setCustomAlert({
+              title: '⚠️ Seal Broken',
+              message: 'A chronicle must have at least one chapter!',
+              buttonText: 'Acknowledge'
+            });
             return doc;
           }
           const index = doc.chapters.findIndex((ch) => ch.id === chapterId);
@@ -809,6 +984,86 @@ export default function App() {
     );
     
     handleAddRewards(finalXp, finalGold);
+
+    // Track slain monsters count
+    const currentSlain = stats.monstersSlainCount || 0;
+    const newSlainCount = currentSlain + 1;
+    
+    setStats((prev) => {
+      const updated = {
+        ...prev,
+        monstersSlainCount: newSlainCount,
+      };
+      
+      // Save stats to user local storage partition immediately
+      if (activeUser && theme) {
+        localStorage.setItem(`pixelquest_${activeUser}_stats_${theme}`, JSON.stringify(updated));
+      }
+      return updated;
+    });
+
+    if (newSlainCount === 3 && !isWitchUnlocked()) {
+      setTimeout(() => {
+        setShowReviewPopup(true);
+      }, 1500); // Small delay to let victory transition/level up screen play first
+    }
+  };
+
+  const handleReviewSubmit = async (stars: number, feedback: string) => {
+    sound.playCoin();
+    
+    const reviewData = {
+      username: activeUser || 'Anonymous',
+      stars,
+      feedback,
+      created_at: new Date().toISOString()
+    };
+
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('reviews').insert(reviewData);
+        if (error) {
+          console.error('Failed to submit review to Supabase:', error.message);
+        }
+      } catch (err) {
+        console.error('Failed to submit review to Supabase:', err);
+      }
+    } else {
+      // Local fallback
+      try {
+        const existingReviewsStr = localStorage.getItem('pixelquest_global_reviews') || '[]';
+        const existingReviews = JSON.parse(existingReviewsStr);
+        existingReviews.push(reviewData);
+        localStorage.setItem('pixelquest_global_reviews', JSON.stringify(existingReviews));
+      } catch (err) {
+        console.error('Failed to save review locally:', err);
+      }
+    }
+
+    // Unlock Wicked Witch theme
+    const user = localStorage.getItem('pixelquest_active_user');
+    const globalKey = user ? `pixelquest_${user}_witch_unlocked` : `pixelquest_witch_unlocked`;
+    localStorage.setItem(globalKey, 'true');
+
+    setStats((prev) => {
+      const updated = {
+        ...prev,
+        witchThemeUnlocked: true
+      };
+      if (activeUser && theme) {
+        localStorage.setItem(`pixelquest_${activeUser}_stats_${theme}`, JSON.stringify(updated));
+      }
+      return updated;
+    });
+
+    setShowReviewPopup(false);
+
+    // Show custom alert dialog to congratulate them
+    setTimeout(() => {
+      sound.playLevelUp();
+      setLevelUpMessage('🔮 THE COVEN IS PLEASED! You have sealed the pact and unlocked the forbidden "Wicked Witch" theme! Select it in the theme dropdown menu at the top to brew your pages in the swamp night.');
+      setShowLevelUpModal(true);
+    }, 500);
   };
 
   // Sounds & Music toggles
@@ -923,18 +1178,34 @@ export default function App() {
             }
 
             sound.playLevelUp();
-            alert('Chronicles and character data successfully loaded!');
+            setCustomAlert({
+              title: '💾 System Restored',
+              message: 'Chronicles and character data successfully loaded!',
+              buttonText: 'Huzzah!'
+            });
           } else {
             sound.playError();
-            alert('Invalid backup file structure.');
+            setCustomAlert({
+              title: '💾 Load Failed',
+              message: 'Invalid backup file structure.',
+              buttonText: 'Acknowledge'
+            });
           }
         } catch (err) {
           sound.playError();
-          alert('Failed to parse backup JSON.');
+          setCustomAlert({
+            title: '💾 Parse Error',
+            message: 'Failed to parse backup JSON.',
+            buttonText: 'Acknowledge'
+          });
         }
       };
     }
   };
+
+  if (!activeUser) {
+    return <AuthPage onLogin={handleLogin} />;
+  }
 
   return (
     <div className={`app-container ${isDistractionFree ? 'distraction-free' : ''}`}>
@@ -945,7 +1216,7 @@ export default function App() {
       <header className="app-header crt-glow">
         <div className="logo-section">
           <span style={{ fontSize: '1.4rem' }}>⚔️</span>
-          <span className="logo-text">PixelQuest Writer</span>
+          <span className="logo-text">Pixel Writer</span>
         </div>
 
         <div className="header-controls">
@@ -1001,7 +1272,7 @@ export default function App() {
                 justifyContent: 'space-between',
               }}
             >
-              <span>{theme === 'cozy' ? 'Cozy Cottage' : theme === 'horror' ? 'Gothic' : theme.charAt(0).toUpperCase() + theme.slice(1)}</span>
+              <span>{theme === 'cozy' ? 'Cozy Cottage' : theme === 'horror' ? 'Gothic' : theme === 'witch' ? 'Wicked Witch' : theme.charAt(0).toUpperCase() + theme.slice(1)}</span>
               <ChevronDown size={10} style={{ transform: isThemeDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
             </button>
 
@@ -1022,23 +1293,44 @@ export default function App() {
                 }}
               >
                 {[
-                  { value: 'fantasy', label: 'Fantasy' },
-                  { value: 'cozy', label: 'Cozy Cottage' },
-                  { value: 'horror', label: 'Gothic' },
-                  { value: 'spaceship', label: 'Spaceship' },
+                  { value: 'fantasy', label: 'Fantasy', locked: false },
+                  { value: 'cozy', label: 'Cozy Cottage', locked: false },
+                  { value: 'horror', label: 'Gothic', locked: false },
+                  { value: 'spaceship', label: 'Spaceship', locked: false },
+                  { value: 'witch', label: 'Wicked Witch', locked: !isWitchUnlocked() },
                 ].map((item) => {
                   const isSelected = item.value === theme;
+                  const labelText = item.locked ? `🔒 ${item.label}` : item.label;
                   return (
                     <div
                       key={item.value}
                       onClick={() => {
+                        if (item.locked) {
+                          sound.playError();
+                          const maxSlain = getMaxMonstersSlain();
+                          if (maxSlain >= 3) {
+                            setIsThemeDropdownOpen(false);
+                            setShowReviewPopup(true);
+                          } else {
+                            setCustomAlert({
+                              title: '🔒 Coven Sealed',
+                              message: `The Coven has sealed this theme! You have slain ${maxSlain}/3 beasts. Defeat 3 swamp beasts to earn their favor and brew a review to unlock the Wicked Witch theme.`,
+                              buttonText: 'Flee',
+                              themeClass: 'theme-witch'
+                            });
+                          }
+                          return;
+                        }
                         sound.playCoin();
                         const nextTheme = item.value;
-                        // Save current stats before switching
-                        localStorage.setItem(`pixelquest_stats_${theme}`, JSON.stringify(stats));
-                        // Load next stats
-                        const saved = localStorage.getItem(`pixelquest_stats_${nextTheme}`);
-                        const nextStats = saved ? JSON.parse(saved) : { ...DEFAULT_STATS };
+                        // Save current stats before switching (user-scoped)
+                        if (activeUser && theme) {
+                          localStorage.setItem(`pixelquest_${activeUser}_stats_${theme}`, JSON.stringify(stats));
+                        }
+                        // Load next stats (user-scoped)
+                        const userKey = activeUser ? `pixelquest_${activeUser}_stats_${nextTheme}` : `pixelquest_stats_${nextTheme}`;
+                        const saved = localStorage.getItem(userKey);
+                        const nextStats = saved ? { ...DEFAULT_STATS, ...JSON.parse(saved) } : { ...DEFAULT_STATS };
                         if (nextStats.normalWordsWritten === undefined) {
                           nextStats.normalWordsWritten = 0;
                         }
@@ -1067,7 +1359,7 @@ export default function App() {
                         }
                       }}
                     >
-                      {item.label}
+                      {labelText}
                     </div>
                   );
                 })}
@@ -1083,9 +1375,26 @@ export default function App() {
               setIsSettingsOpen(true);
             }}
             style={{ padding: '6px 10px' }}
+            title="Settings"
           >
             <Settings size={14} />
           </button>
+
+          {/* Logout button */}
+          {activeUser && (
+            <button
+              className="pixel-btn"
+              onClick={() => {
+                sound.playHit();
+                handleLogout();
+              }}
+              style={{ padding: '6px 10px' }}
+              title="Logout"
+            >
+              <span style={{ fontSize: '0.6rem', marginRight: '4px' }}>{activeUser.toUpperCase()}</span>
+              <LogOut size={14} />
+            </button>
+          )}
         </div>
       </header>
 
@@ -1164,7 +1473,7 @@ export default function App() {
       {/* Level Up congratulatory popup */}
       {showLevelUpModal && (
         <div className="dialog-backdrop" style={{ zIndex: 1002 }}>
-          <div className="pixel-panel pixel-dialog crt-glow" style={{ width: '320px', textAlign: 'center' }}>
+          <div className={`pixel-panel pixel-dialog crt-glow ${levelUpMessage.includes('COVEN') ? 'theme-witch' : ''}`} style={{ width: '320px', textAlign: 'center' }}>
             <div className="pixel-panel-header">Level Up!</div>
             <Sparkles size={48} style={{ color: 'var(--accent-color)', margin: '16px auto' }} />
             <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '8px' }}>CONGRATULATIONS!</h3>
@@ -1180,6 +1489,125 @@ export default function App() {
               style={{ width: '100%' }}
             >
               Onward, Adventurer!
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tavern Review Request Modal */}
+      {showReviewPopup && (
+        <div className="dialog-backdrop" style={{ zIndex: 1002 }}>
+          <div className="pixel-panel pixel-dialog crt-glow theme-witch" style={{ width: '400px' }}>
+            <div className="pixel-panel-header">🔮 Witches’ Coven Pact 🔮</div>
+            
+            <p style={{ fontSize: '0.65rem', lineHeight: '1.6', marginBottom: '16px', color: 'var(--text-primary)' }}>
+              Greetings, adventurer! You have slain 3 beasts! 
+              The Swamp Coven requests a review in our magical database to spread the word. 
+              Cast your thoughts into the cauldron to seal the pact and unlock the forbidden **Wicked Witch** theme!
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '16px' }}>
+              {/* Star Rating Select */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>COVEN RATING (STARS):</span>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const isSelected = star <= reviewStars;
+                    return (
+                      <span
+                        key={star}
+                        onClick={() => {
+                          sound.playTypeClick();
+                          setReviewStars(star);
+                        }}
+                        style={{
+                          fontSize: '1.5rem',
+                          cursor: 'pointer',
+                          color: isSelected ? 'var(--accent-color)' : 'var(--text-secondary)',
+                          textShadow: isSelected ? '0 0 5px var(--accent-color)' : 'none',
+                          transition: 'color 0.1s'
+                        }}
+                      >
+                        ★
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Feedback Comment Text Area */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>TRANSCRIBE YOUR HEX OR BLESSING:</label>
+                <textarea
+                  className="pixel-input"
+                  rows={3}
+                  value={reviewFeedback}
+                  onChange={(e) => setReviewFeedback(e.target.value)}
+                  style={{
+                    width: '100%',
+                    resize: 'none',
+                    fontSize: '0.65rem',
+                    lineHeight: '1.4',
+                    fontFamily: 'Courier Prime, monospace',
+                    padding: '8px',
+                  }}
+                  placeholder="Cast your words into the brew... how has your journey been?"
+                  maxLength={500}
+                />
+              </div>
+            </div>
+
+            <div className="dialog-buttons">
+              <button
+                className="pixel-btn"
+                onClick={() => {
+                  sound.playHit();
+                  setShowReviewPopup(false);
+                }}
+              >
+                Flee
+              </button>
+              <button
+                className="pixel-btn pixel-btn-accent"
+                onClick={() => {
+                  if (!reviewFeedback.trim()) {
+                    sound.playHit();
+                    setCustomAlert({
+                      title: '🔮 Cauldron Empty',
+                      message: 'Please write a quick comment to brew the potion!',
+                      buttonText: 'Acknowledge',
+                      themeClass: 'theme-witch'
+                    });
+                    return;
+                  }
+                  handleReviewSubmit(reviewStars, reviewFeedback);
+                }}
+                disabled={reviewStars < 1 || reviewStars > 5}
+              >
+                Seal Pact
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Alert Modal Dialog */}
+      {customAlert && (
+        <div className="dialog-backdrop" style={{ zIndex: 1003 }}>
+          <div className={`pixel-panel pixel-dialog crt-glow ${customAlert.themeClass || ''}`} style={{ width: '360px', textAlign: 'center' }}>
+            <div className="pixel-panel-header">{customAlert.title}</div>
+            <p style={{ fontSize: '0.65rem', lineHeight: '1.6', margin: '20px 0', color: 'var(--text-primary)' }}>
+              {customAlert.message}
+            </p>
+            <button
+              className="pixel-btn pixel-btn-accent"
+              onClick={() => {
+                sound.playCoin();
+                setCustomAlert(null);
+              }}
+              style={{ width: '100%' }}
+            >
+              {customAlert.buttonText || 'OK'}
             </button>
           </div>
         </div>

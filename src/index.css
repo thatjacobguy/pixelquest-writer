@@ -506,4 +506,71 @@ body {
   border-radius: 0;
 }
 
+/* Theme 5: Wicked Witch (Spooky Swamp & Cauldron Brew) */
+.theme-witch {
+  --bg-primary: #120c1f; /* Deep dark violet swamp night */
+  --bg-secondary: #1a0f2e; /* Witchy dark purple cauldron shadow */
+  --bg-editor: #0c0814; /* Shadow black editor */
+  --text-primary: #a3ff1a; /* Toxic slime neon green */
+  --text-secondary: #d185ff; /* Soft magic purple for subtitles */
+  --text-editor: #a3ff1a; /* Toxic green text inside editor */
+  --border-color: #8a2be2; /* Blue violet border */
+  --accent-color: #ff00ff; /* Neon magenta highlights */
+  --accent-hover: #ff66ff;
+  --accent-rgb: 255, 0, 255;
+  --panel-bg: #1f1235; /* Witch cauldron panel */
+  --panel-header-bg: #0f071c;
+  --font-ui: 'Press Start 2P', 'VT323', monospace;
+  --font-editor: 'Share Tech Mono', Courier, monospace;
+  --border-style: solid;
+  --border-width: 4px;
+  --crt-glow: 0 0 6px rgba(163, 255, 26, 0.4);
+  --scanline-opacity: 0.04;
+  animation: witch-glow 6s infinite alternate;
+}
+
+@keyframes witch-glow {
+  0% {
+    box-shadow: inset 0 0 10px rgba(138, 43, 226, 0.2);
+  }
+  100% {
+    box-shadow: inset 0 0 25px rgba(255, 0, 255, 0.25);
+  }
+}
+
+/* Arcade Reviews Ticker */
+.arcade-marquee-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: var(--panel-header-bg);
+  border-top: var(--border-width) var(--border-style) var(--border-color);
+  padding: 8px 0;
+  overflow: hidden;
+  white-space: nowrap;
+  box-sizing: border-box;
+  z-index: 55;
+}
+
+.arcade-marquee-text {
+  display: inline-block;
+  padding-left: 100%;
+  animation: marquee-scroll 35s linear infinite;
+  font-size: 0.65rem;
+  color: var(--accent-color);
+  text-transform: uppercase;
+  font-family: var(--font-ui);
+}
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-100%, 0, 0);
+  }
+}
+
+
 
