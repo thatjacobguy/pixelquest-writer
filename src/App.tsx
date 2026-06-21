@@ -213,7 +213,7 @@ export default function App() {
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState<boolean>(false);
 
   const [isDistractionFree, setIsDistractionFree] = useState<boolean>(false);
-  const [activeView, setActiveView] = useState<'editor' | 'shop'>('editor');
+  const [activeView, setActiveView] = useState<'editor' | 'shop' | 'sidebar' | 'rpg'>('editor');
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(sound.getEnabled());
   const [musicEnabled, setMusicEnabled] = useState<boolean>(sound.getMusicEnabled());
@@ -224,6 +224,7 @@ export default function App() {
   const [reviewStars, setReviewStars] = useState<number>(5);
   const [reviewFeedback, setReviewFeedback] = useState<string>( '');
   const [customAlert, setCustomAlert] = useState<{ title: string; message: string; buttonText?: string; themeClass?: string } | null>(null);
+  const [isMobile, setIsMobile] = useState<boolean>(() => window.innerWidth <= 900);
 
   // Challenge Mode State
   const [challengeActive, setChallengeActive] = useState<boolean>(false);
@@ -243,6 +244,93 @@ export default function App() {
       localStorage.setItem(`pixelquest_${activeUser}_docs`, JSON.stringify(documents));
     }
   }, [documents, activeUser]);
+
+  // Handle mobile layout resize checks
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 900);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Sync activeView back to editor if switching to desktop
+  useEffect(() => {
+    if (!isMobile && (activeView === 'sidebar' || activeView === 'rpg')) {
+      setActiveView('editor');
+    }
+  }, [isMobile, activeView]);
+
+  // Fetch Cloud Stats on Mount or Login
+  useEffect(() => {
+    const fetchCloudStats = async (username: string) => {
+      if (!isSupabaseConfigured) return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('character_stats')
+          .select('theme, stats')
+          .eq('user_id', user.id);
+
+        if (error) {
+          console.error('Error fetching stats from Supabase:', error.message);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          data.forEach((row) => {
+            const key = `pixelquest_${username}_stats_${row.theme}`;
+            localStorage.setItem(key, JSON.stringify(row.stats));
+          });
+
+          const activeTheme = (username ? localStorage.getItem(`pixelquest_${username}_theme`) : null) || localStorage.getItem('pixelquest_theme') || 'fantasy';
+          const matchingRow = data.find((row) => row.theme === activeTheme);
+          if (matchingRow) {
+            setStats({ ...DEFAULT_STATS, ...matchingRow.stats });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch cloud stats:', err);
+      }
+    };
+
+    if (activeUser) {
+      fetchCloudStats(activeUser);
+    }
+  }, [activeUser]);
+
+  // Debounced Cloud Stats Saving
+  useEffect(() => {
+    if (!activeUser || !isSupabaseConfigured) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { error } = await supabase
+          .from('character_stats')
+          .upsert({
+            user_id: user.id,
+            theme: theme,
+            stats: stats,
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: 'user_id,theme'
+          });
+
+        if (error) {
+          console.error('Failed to save stats to Supabase:', error.message);
+        }
+      } catch (err) {
+        console.error('Failed to save stats to Supabase:', err);
+      }
+    }, 4000); // 4-second debounce
+
+    return () => clearTimeout(timer);
+  }, [stats, theme, activeUser]);
 
   useEffect(() => {
     if (activeUser && theme) {
@@ -919,9 +1007,10 @@ export default function App() {
     setDocuments((prev) =>
       prev.map((doc) => {
         if (doc.id === activeDocId) {
+          const newDamage = Math.max(0, (doc.battleDamageDealt || 0) + damage);
           return {
             ...doc,
-            battleDamageDealt: (doc.battleDamageDealt || 0) + damage,
+            battleDamageDealt: newDamage,
             lastModified: Date.now(),
           };
         }
@@ -1121,7 +1210,7 @@ export default function App() {
   const handleAddNormalWords = (words: number) => {
     setStats((prev) => ({
       ...prev,
-      normalWordsWritten: (prev.normalWordsWritten || 0) + words,
+      normalWordsWritten: Math.max(0, (prev.normalWordsWritten || 0) + words),
     }));
   };
 
@@ -1398,67 +1487,179 @@ export default function App() {
         </div>
       </header>
 
-      {/* Sidebar - Chronicles */}
-      <Sidebar
-        documents={documents}
-        activeDocId={activeDocId}
-        onSelectDoc={handleSelectDoc}
-        onCreateDoc={handleCreateDoc}
-        onRenameDoc={handleRenameDoc}
-        onDeleteDoc={handleDeleteDoc}
-        localFolderName={localFolderName}
-        localFolderState={localFolderState}
-        onLinkFolder={handleLinkFolder}
-        onUnlinkFolder={handleUnlinkFolder}
-        onReauthFolder={handleReauthFolder}
-        onSelectChapter={handleSelectChapter}
-        onAddChapter={handleAddChapter}
-        onRenameChapter={handleRenameChapter}
-        onDeleteChapter={handleDeleteChapter}
-        onForceSave={handleForceSave}
-      />
+      {isMobile ? (
+        <>
+          {activeView === 'sidebar' && (
+            <Sidebar
+              documents={documents}
+              activeDocId={activeDocId}
+              onSelectDoc={handleSelectDoc}
+              onCreateDoc={handleCreateDoc}
+              onRenameDoc={handleRenameDoc}
+              onDeleteDoc={handleDeleteDoc}
+              localFolderName={localFolderName}
+              localFolderState={localFolderState}
+              onLinkFolder={handleLinkFolder}
+              onUnlinkFolder={handleUnlinkFolder}
+              onReauthFolder={handleReauthFolder}
+              onSelectChapter={handleSelectChapter}
+              onAddChapter={handleAddChapter}
+              onRenameChapter={handleRenameChapter}
+              onDeleteChapter={handleDeleteChapter}
+              onForceSave={handleForceSave}
+            />
+          )}
+          {activeView === 'editor' && (
+            <Editor
+              document={activeDoc}
+              onUpdateContent={handleUpdateContent}
+              onUpdateGoal={handleUpdateGoal}
+              isDistractionFree={isDistractionFree}
+              onToggleDistractionFree={() => setIsDistractionFree(!isDistractionFree)}
+              fontSize={fontSize}
+              onUpdateFontSize={setFontSize}
+              theme={theme}
+            />
+          )}
+          {activeView === 'shop' && (
+            <ShopPanel
+              stats={stats}
+              onBuyItem={handleBuyItem}
+              onCloseShop={() => setActiveView('editor')}
+              theme={theme}
+            />
+          )}
+          {activeView === 'rpg' && (
+            <RPGPanel
+              stats={stats}
+              activeDoc={activeDoc}
+              theme={theme}
+              onAddRewards={handleAddRewards}
+              onSetQuestInDoc={handleSetQuestInDoc}
+              onSwitchToShop={() => setActiveView('shop')}
+              challengeActive={challengeActive}
+              challengeTimer={challengeTimer}
+              challengeSuccess={challengeSuccess}
+              challengeWordTarget={challengeWordTarget}
+              challengeRewards={challengeRewards}
+              onStartChallenge={handleStartChallenge}
+              onCancelChallenge={handleCancelChallenge}
+              onClaimProgressionQuest={handleClaimProgressionQuest}
+              onUpdateGoal={handleUpdateGoal}
+              onAddNormalWords={handleAddNormalWords}
+              onDealDamage={handleDealDamage}
+            />
+          )}
 
-      {/* Center - Editor / Shop */}
-      {activeView === 'editor' ? (
-        <Editor
-          document={activeDoc}
-          onUpdateContent={handleUpdateContent}
-          onUpdateGoal={handleUpdateGoal}
-          isDistractionFree={isDistractionFree}
-          onToggleDistractionFree={() => setIsDistractionFree(!isDistractionFree)}
-          fontSize={fontSize}
-          onUpdateFontSize={setFontSize}
-          theme={theme}
-        />
+          {/* Mobile Bottom Navigation Bar */}
+          <div className="mobile-nav-bar crt-glow">
+            <button
+              className={`pixel-btn ${activeView === 'sidebar' ? 'pixel-btn-accent' : ''}`}
+              onClick={() => {
+                sound.playCoin();
+                setActiveView('sidebar');
+              }}
+              style={{ flex: 1, height: '100%', fontSize: '0.55rem', padding: '4px', margin: '0 2px' }}
+            >
+              📜 Scrolls
+            </button>
+            <button
+              className={`pixel-btn ${activeView === 'editor' ? 'pixel-btn-accent' : ''}`}
+              onClick={() => {
+                sound.playCoin();
+                setActiveView('editor');
+              }}
+              style={{ flex: 1, height: '100%', fontSize: '0.55rem', padding: '4px', margin: '0 2px' }}
+            >
+              ✍️ Write
+            </button>
+            <button
+              className={`pixel-btn ${activeView === 'rpg' ? 'pixel-btn-accent' : ''}`}
+              onClick={() => {
+                sound.playCoin();
+                setActiveView('rpg');
+              }}
+              style={{ flex: 1, height: '100%', fontSize: '0.55rem', padding: '4px', margin: '0 2px' }}
+            >
+              ⚔️ Quest
+            </button>
+            <button
+              className={`pixel-btn ${activeView === 'shop' ? 'pixel-btn-accent' : ''}`}
+              onClick={() => {
+                sound.playCoin();
+                setActiveView('shop');
+              }}
+              style={{ flex: 1, height: '100%', fontSize: '0.55rem', padding: '4px', margin: '0 2px' }}
+            >
+              🛒 Shop
+            </button>
+          </div>
+        </>
       ) : (
-        <ShopPanel
-          stats={stats}
-          onBuyItem={handleBuyItem}
-          onCloseShop={() => setActiveView('editor')}
-          theme={theme}
-        />
-      )}
+        <>
+          {/* Sidebar - Chronicles */}
+          <Sidebar
+            documents={documents}
+            activeDocId={activeDocId}
+            onSelectDoc={handleSelectDoc}
+            onCreateDoc={handleCreateDoc}
+            onRenameDoc={handleRenameDoc}
+            onDeleteDoc={handleDeleteDoc}
+            localFolderName={localFolderName}
+            localFolderState={localFolderState}
+            onLinkFolder={handleLinkFolder}
+            onUnlinkFolder={handleUnlinkFolder}
+            onReauthFolder={handleReauthFolder}
+            onSelectChapter={handleSelectChapter}
+            onAddChapter={handleAddChapter}
+            onRenameChapter={handleRenameChapter}
+            onDeleteChapter={handleDeleteChapter}
+            onForceSave={handleForceSave}
+          />
 
-      {/* Right - RPG Panel */}
-      <RPGPanel
-        stats={stats}
-        activeDoc={activeDoc}
-        theme={theme}
-        onAddRewards={handleAddRewards}
-        onSetQuestInDoc={handleSetQuestInDoc}
-        onSwitchToShop={() => setActiveView('shop')}
-        challengeActive={challengeActive}
-        challengeTimer={challengeTimer}
-        challengeSuccess={challengeSuccess}
-        challengeWordTarget={challengeWordTarget}
-        challengeRewards={challengeRewards}
-        onStartChallenge={handleStartChallenge}
-        onCancelChallenge={handleCancelChallenge}
-        onClaimProgressionQuest={handleClaimProgressionQuest}
-        onUpdateGoal={handleUpdateGoal}
-        onAddNormalWords={handleAddNormalWords}
-        onDealDamage={handleDealDamage}
-      />
+          {/* Center - Editor / Shop */}
+          {activeView === 'editor' ? (
+            <Editor
+              document={activeDoc}
+              onUpdateContent={handleUpdateContent}
+              onUpdateGoal={handleUpdateGoal}
+              isDistractionFree={isDistractionFree}
+              onToggleDistractionFree={() => setIsDistractionFree(!isDistractionFree)}
+              fontSize={fontSize}
+              onUpdateFontSize={setFontSize}
+              theme={theme}
+            />
+          ) : (
+            <ShopPanel
+              stats={stats}
+              onBuyItem={handleBuyItem}
+              onCloseShop={() => setActiveView('editor')}
+              theme={theme}
+            />
+          )}
+
+          {/* Right - RPG Panel */}
+          <RPGPanel
+            stats={stats}
+            activeDoc={activeDoc}
+            theme={theme}
+            onAddRewards={handleAddRewards}
+            onSetQuestInDoc={handleSetQuestInDoc}
+            onSwitchToShop={() => setActiveView('shop')}
+            challengeActive={challengeActive}
+            challengeTimer={challengeTimer}
+            challengeSuccess={challengeSuccess}
+            challengeWordTarget={challengeWordTarget}
+            challengeRewards={challengeRewards}
+            onStartChallenge={handleStartChallenge}
+            onCancelChallenge={handleCancelChallenge}
+            onClaimProgressionQuest={handleClaimProgressionQuest}
+            onUpdateGoal={handleUpdateGoal}
+            onAddNormalWords={handleAddNormalWords}
+            onDealDamage={handleDealDamage}
+          />
+        </>
+      )}
 
       {/* Settings Modal Dialog */}
       <SettingsModal

@@ -142,7 +142,7 @@ export default function RPGPanel({
   const [showGoalSelect, setShowGoalSelect] = useState(false);
   
   const [isHitting, setIsHitting] = useState(false);
-  const [floatingDmg, setFloatingDmg] = useState<{ id: number; text: string; x: number; y: number }[]>([]);
+  const [floatingDmg, setFloatingDmg] = useState<{ id: number; text: string; x: number; y: number; isHeal?: boolean }[]>([]);
   const [dmgId, setDmgId] = useState(0);
   const [isDefeating, setIsDefeating] = useState<string | null>(null);
 
@@ -288,6 +288,47 @@ export default function RPGPanel({
             }, 1200);
           }
         }
+      } else if (runWords < prevWordCount.current) {
+        // Regain health / healing logic when words are deleted
+        sound.playHit();
+        
+        const diff = prevWordCount.current - runWords;
+        if (!challengeActive && onAddNormalWords) {
+          onAddNormalWords(-diff);
+        }
+
+        // Calculate healing multiplier (same logic as damage)
+        let multiplier = 1.0;
+        const hasDmgItem = stats.inventory.some(item =>
+          ['epic_sword', 'cozy_mug', 'silver_dagger', 'laser_blaster'].includes(item)
+        );
+        const hasCritItem = stats.inventory.some(item =>
+          ['wizard_robe', 'knitted_sweater', 'plague_mask', 'force_shield'].includes(item)
+        );
+        const hasUltItem = stats.inventory.some(item =>
+          ['scribe_crown', 'grandfather_clock', 'vampire_cape', 'gravity_engine'].includes(item)
+        );
+
+        if (hasDmgItem) multiplier += 0.25;
+        if (hasCritItem) multiplier += 0.30;
+        if (hasUltItem) multiplier += 0.50;
+
+        const healing = Math.round(diff * multiplier);
+        if (onDealDamage) {
+          onDealDamage(-healing); // Subtraction reduces battleDamageDealt
+        }
+
+        setFloatingDmg((prev) => [
+          ...prev,
+          {
+            id: dmgId,
+            text: `+${healing} WP`,
+            x: 35 + Math.random() * 30,
+            y: 25 + Math.random() * 20,
+            isHeal: true,
+          },
+        ]);
+        setDmgId((id) => id + 1);
       }
     }
     prevWordCount.current = runWords;
@@ -880,7 +921,11 @@ export default function RPGPanel({
               <span
                 key={dmg.id}
                 className="floating-text"
-                style={{ left: `${dmg.x}%`, top: `${dmg.y}%` }}
+                style={{ 
+                  left: `${dmg.x}%`, 
+                  top: `${dmg.y}%`,
+                  color: dmg.isHeal ? '#22c55e' : 'var(--accent-color)', // Green text for healing
+                }}
               >
                 {dmg.text}
               </span>

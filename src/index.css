@@ -572,5 +572,69 @@ body {
   }
 }
 
+/* Responsive Mobile & Tablet Rules */
+@media (max-width: 900px) {
+  .app-container {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 60px 1fr 55px !important;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .sidebar-panel, .rpg-panel, .editor-panel {
+    border-left: none !important;
+    border-right: none !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Adjust headers inside panels on mobile */
+  .pixel-panel-header {
+    font-size: 0.65rem !important;
+    padding: 6px 8px !important;
+  }
+
+  /* Fixed mobile nav bar styles */
+  .mobile-nav-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 55px;
+    background-color: var(--panel-bg);
+    border-top: var(--border-width) var(--border-style) var(--border-color);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+    padding: 4px;
+    box-sizing: border-box;
+  }
+
+  /* Make sure floating text has correct z-index */
+  .floating-text {
+    z-index: 999;
+  }
+
+  /* Shrink some buttons or fonts for small screen real estate */
+  .pixel-btn {
+    padding: 6px 8px !important;
+    font-size: 0.6rem !important;
+  }
+
+  .logo-text {
+    font-size: 0.9rem !important;
+  }
+
+  .header-controls {
+    gap: 8px !important;
+  }
+
+  .pixel-dialog {
+    width: 95% !important;
+    max-width: 400px !important;
+  }
+}
+
 
 
