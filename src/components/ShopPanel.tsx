@@ -274,6 +274,7 @@ interface ShopPanelProps {
   onBuyItem: (itemId: string, price: number) => void;
   onCloseShop: () => void;
   theme: string;
+  isMobile?: boolean;
 }
 
 export default function ShopPanel({
@@ -281,6 +282,7 @@ export default function ShopPanel({
   onBuyItem,
   onCloseShop,
   theme,
+  isMobile = false,
 }: ShopPanelProps) {
   
   // Custom Merchant dialogue based on Theme
@@ -349,30 +351,32 @@ export default function ShopPanel({
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        padding: '20px',
+        padding: isMobile ? '10px' : '20px',
         overflowY: 'auto',
       }}
     >
       {/* Header Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobile ? '10px' : '20px' }}>
         <button className="pixel-btn" onClick={() => { sound.playCoin(); onCloseShop(); }}>
-          <ArrowLeft size={14} /> {getBackButtonLabel()}
+          <ArrowLeft size={14} /> {isMobile ? 'Back' : getBackButtonLabel()}
         </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 'bold' }}>
-          <ShoppingBag size={18} style={{ color: 'var(--accent-color)' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: isMobile ? '0.75rem' : '0.9rem', fontWeight: 'bold' }}>
+          <ShoppingBag size={isMobile ? 14 : 18} style={{ color: 'var(--accent-color)' }} />
           <span>{getShopTitle()}</span>
         </div>
       </div>
 
       {/* Merchant Message */}
-      <div className="pixel-panel crt-glow" style={{ marginBottom: '20px', padding: '12px' }}>
-        <p style={{ fontSize: '0.75rem', lineHeight: '1.6', fontStyle: 'italic', color: 'var(--accent-color)' }}>
-          {getMerchantText()}
-        </p>
-      </div>
+      {!isMobile && (
+        <div className="pixel-panel crt-glow" style={{ marginBottom: '20px', padding: '12px' }}>
+          <p style={{ fontSize: '0.75rem', lineHeight: '1.6', fontStyle: 'italic', color: 'var(--accent-color)' }}>
+            {getMerchantText()}
+          </p>
+        </div>
+      )}
 
       {/* Shop Items Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(150px, 1fr))' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: isMobile ? '10px' : '16px' }}>
         {activeItems.map((item) => {
           const isOwned = stats.inventory.includes(item.id);
           const isUltimateItem = item.id === 'scribe_crown' || item.id === 'grandfather_clock' || item.id === 'vampire_cape' || item.id === 'gravity_engine';

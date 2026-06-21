@@ -13,6 +13,7 @@ interface EditorProps {
   fontSize: string;
   onUpdateFontSize: (size: string) => void;
   theme: string;
+  isMobile?: boolean;
 }
 
 export default function Editor({
@@ -24,6 +25,7 @@ export default function Editor({
   fontSize,
   onUpdateFontSize,
   theme,
+  isMobile = false,
 }: EditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -123,7 +125,7 @@ export default function Editor({
   };
 
   return (
-    <div className="editor-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px' }}>
+    <div className="editor-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: isMobile ? '6px' : '16px' }}>
       
       {/* Editor Header */}
       <div
@@ -131,129 +133,203 @@ export default function Editor({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '12px',
-          gap: '12px',
+          marginBottom: isMobile ? '6px' : '12px',
+          gap: '8px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Chronicle:</span>
-          <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>
-            {doc.title}
-          </span>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>&gt; Chapter:</span>
-          <span style={{ fontSize: '0.85rem', fontWeight: 'bold', borderBottom: '2px solid var(--border-color)', paddingBottom: '2px' }}>
-            {activeChapter ? activeChapter.title : 'Chapter 1'}
-          </span>
-        </div>
+        {isMobile ? (
+          <>
+            {/* Mobile Header: Single line title + Target Quest dropdown on the same row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {doc.title} &gt; {activeChapter ? activeChapter.title : 'Chapter 1'}
+              </span>
+            </div>
 
-        {/* Goal Selector & Distraction Free toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          
-          {/* Font Size Selector */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Font:</span>
-            <select
-              className="pixel-input"
-              value={fontSize}
-              onChange={(e) => {
-                sound.playCoin();
-                onUpdateFontSize(e.target.value);
-              }}
-              style={{ padding: '2px 4px', fontSize: '0.65rem', cursor: 'pointer' }}
-            >
-              <option value="14px">14px</option>
-              <option value="16px">16px</option>
-              <option value="18px">18px</option>
-              <option value="20px">20px</option>
-              <option value="24px">24px</option>
-            </select>
-          </div>
-
-          <div ref={dropdownRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <Target size={14} style={{ color: 'var(--accent-color)', marginRight: '6px' }} />
-            <button
-              className="pixel-btn"
-              onClick={() => {
-                sound.playCoin();
-                setIsDropdownOpen(!isDropdownOpen);
-              }}
-              style={{
-                padding: '4px 8px',
-                fontSize: '0.6rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                minWidth: '180px',
-                justifyContent: 'space-between',
-              }}
-            >
-              {doc.battleMode === 'single' ? (
-                <span>Single: {activeMonster.name} ({activeQuest.wordCount}w)</span>
-              ) : (
-                <span>Quest: {activeMonster.name} ({activeQuest.wordCount}w)</span>
-              )}
-              <ChevronDown size={10} style={{ transform: isDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-            </button>
-
-            {isDropdownOpen && (
-              <div
-                className="pixel-panel crt-glow"
+            {/* Quest Dropdown directly next to it */}
+            <div ref={dropdownRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+              <Target size={12} style={{ color: 'var(--accent-color)', marginRight: '4px' }} />
+              <button
+                className="pixel-btn"
+                onClick={() => {
+                  sound.playCoin();
+                  setIsDropdownOpen(!isDropdownOpen);
+                }}
                 style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 4px)',
-                  right: 0,
-                  width: '240px',
-                  backgroundColor: 'var(--panel-bg)',
-                  zIndex: 200,
-                  padding: '4px',
+                  padding: '4px 6px',
+                  fontSize: '0.55rem',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '2px',
+                  alignItems: 'center',
+                  gap: '4px',
+                  maxWidth: '150px',
+                  justifyContent: 'space-between',
                 }}
               >
-                {/* Campaign Mode Option */}
+                {doc.battleMode === 'single' ? (
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>S: {activeMonster.name}</span>
+                ) : (
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Q: {activeMonster.name}</span>
+                )}
+                <ChevronDown size={8} style={{ transform: isDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+              </button>
+
+              {isDropdownOpen && (
                 <div
-                  onClick={() => {
-                    sound.playCoin();
-                    onUpdateGoal(5000, 'progression');
-                    setIsDropdownOpen(false);
-                  }}
+                  className="pixel-panel crt-glow"
                   style={{
-                    padding: '6px 8px',
-                    cursor: 'pointer',
-                    fontSize: '0.6rem',
-                    fontFamily: 'var(--font-ui)',
-                    color: doc.battleMode === 'progression' ? 'var(--bg-primary)' : 'var(--text-primary)',
-                    backgroundColor: doc.battleMode === 'progression' ? 'var(--accent-color)' : 'transparent',
-                    transition: 'background-color 0.1s, color 0.1s',
-                    borderRadius: '2px',
-                    fontWeight: 'bold',
-                    borderBottom: '1px dashed var(--border-color)',
-                    marginBottom: '4px',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (doc.battleMode !== 'progression') {
-                      e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (doc.battleMode !== 'progression') {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }
+                    position: 'absolute',
+                    top: 'calc(100% + 4px)',
+                    right: 0,
+                    width: '200px',
+                    backgroundColor: 'var(--panel-bg)',
+                    zIndex: 200,
+                    padding: '4px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px',
                   }}
                 >
-                  ⚔️ Quest (Progressive)
-                </div>
+                  {/* Campaign Mode Option */}
+                  <div
+                    onClick={() => {
+                      sound.playCoin();
+                      onUpdateGoal(5000, 'progression');
+                      setIsDropdownOpen(false);
+                    }}
+                    style={{
+                      padding: '6px 8px',
+                      cursor: 'pointer',
+                      fontSize: '0.6rem',
+                      fontFamily: 'var(--font-ui)',
+                      color: doc.battleMode === 'progression' ? 'var(--bg-primary)' : 'var(--text-primary)',
+                      backgroundColor: doc.battleMode === 'progression' ? 'var(--accent-color)' : 'transparent',
+                      transition: 'background-color 0.1s, color 0.1s',
+                      borderRadius: '2px',
+                      fontWeight: 'bold',
+                      borderBottom: '1px dashed var(--border-color)',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    ⚔️ Quest (Progressive)
+                  </div>
 
-                {QUEST_CONFIGS.map((q) => {
-                  const monster = getMonsterData(theme, q.id);
-                  const isSelected = doc.battleMode === 'single' && q.id === doc.selectedMonsterId;
-                  return (
+                  {QUEST_CONFIGS.map((q) => {
+                    const monster = getMonsterData(theme, q.id);
+                    const isSelected = doc.battleMode === 'single' && q.id === doc.selectedMonsterId;
+                    return (
+                      <div
+                        key={q.id}
+                        onClick={() => {
+                          sound.playCoin();
+                          onUpdateGoal(q.wordCount, 'single', q.id);
+                          setIsDropdownOpen(false);
+                        }}
+                        style={{
+                          padding: '6px 8px',
+                          cursor: 'pointer',
+                          fontSize: '0.55rem',
+                          fontFamily: 'var(--font-ui)',
+                          color: isSelected ? 'var(--bg-primary)' : 'var(--text-primary)',
+                          backgroundColor: isSelected ? 'var(--accent-color)' : 'transparent',
+                          transition: 'background-color 0.1s, color 0.1s',
+                          borderRadius: '2px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <span>Single: {monster.name}</span>
+                        <span style={{ fontSize: '0.5rem', opacity: 0.8 }}>({q.wordCount}w)</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Desktop Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Chronicle:</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>
+                {doc.title}
+              </span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>&gt; Chapter:</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', borderBottom: '2px solid var(--border-color)', paddingBottom: '2px' }}>
+                {activeChapter ? activeChapter.title : 'Chapter 1'}
+              </span>
+            </div>
+
+            {/* Goal Selector & Distraction Free toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              
+              {/* Font Size Selector */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Font:</span>
+                <select
+                  className="pixel-input"
+                  value={fontSize}
+                  onChange={(e) => {
+                    sound.playCoin();
+                    onUpdateFontSize(e.target.value);
+                  }}
+                  style={{ padding: '2px 4px', fontSize: '0.65rem', cursor: 'pointer' }}
+                >
+                  <option value="14px">14px</option>
+                  <option value="16px">16px</option>
+                  <option value="18px">18px</option>
+                  <option value="20px">20px</option>
+                  <option value="24px">24px</option>
+                </select>
+              </div>
+
+              <div ref={dropdownRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <Target size={14} style={{ color: 'var(--accent-color)', marginRight: '6px' }} />
+                <button
+                  className="pixel-btn"
+                  onClick={() => {
+                    sound.playCoin();
+                    setIsDropdownOpen(!isDropdownOpen);
+                  }}
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: '0.6rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    minWidth: '180px',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  {doc.battleMode === 'single' ? (
+                    <span>Single: {activeMonster.name} ({activeQuest.wordCount}w)</span>
+                  ) : (
+                    <span>Quest: {activeMonster.name} ({activeQuest.wordCount}w)</span>
+                  )}
+                  <ChevronDown size={10} style={{ transform: isDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                </button>
+
+                {isDropdownOpen && (
+                  <div
+                    className="pixel-panel crt-glow"
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 4px)',
+                      right: 0,
+                      width: '240px',
+                      backgroundColor: 'var(--panel-bg)',
+                      zIndex: 200,
+                      padding: '4px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px',
+                    }}
+                  >
+                    {/* Campaign Mode Option */}
                     <div
-                      key={q.id}
                       onClick={() => {
                         sound.playCoin();
-                        onUpdateGoal(q.wordCount, 'single', q.id);
+                        onUpdateGoal(5000, 'progression');
                         setIsDropdownOpen(false);
                       }}
                       style={{
@@ -261,48 +337,88 @@ export default function Editor({
                         cursor: 'pointer',
                         fontSize: '0.6rem',
                         fontFamily: 'var(--font-ui)',
-                        color: isSelected ? 'var(--bg-primary)' : 'var(--text-primary)',
-                        backgroundColor: isSelected ? 'var(--accent-color)' : 'transparent',
+                        color: doc.battleMode === 'progression' ? 'var(--bg-primary)' : 'var(--text-primary)',
+                        backgroundColor: doc.battleMode === 'progression' ? 'var(--accent-color)' : 'transparent',
                         transition: 'background-color 0.1s, color 0.1s',
                         borderRadius: '2px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
+                        fontWeight: 'bold',
+                        borderBottom: '1px dashed var(--border-color)',
+                        marginBottom: '4px',
                       }}
                       onMouseEnter={(e) => {
-                        if (!isSelected) {
+                        if (doc.battleMode !== 'progression') {
                           e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
                         }
                       }}
                       onMouseLeave={(e) => {
-                        if (!isSelected) {
+                        if (doc.battleMode !== 'progression') {
                           e.currentTarget.style.backgroundColor = 'transparent';
                         }
                       }}
                     >
-                      <span>Single: {monster.name}</span>
-                      <span style={{ fontSize: '0.55rem', opacity: 0.8 }}>({q.wordCount} words)</span>
+                      ⚔️ Quest (Progressive)
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
 
-          <button
-            className="pixel-btn"
-            onClick={() => {
-              sound.playCoin();
-              onToggleDistractionFree();
-            }}
-            style={{ padding: '6px 10px' }}
-            title={isDistractionFree ? 'Show HUD Panels' : 'Distraction-Free Mode'}
-          >
-            {isDistractionFree ? <Eye size={14} /> : <EyeOff size={14} />}
-            <span style={{ fontSize: '0.6rem', marginLeft: '4px' }}>
-              {isDistractionFree ? 'SHOW HUD' : 'FOCUS'}
-            </span>
-          </button>
-        </div>
+                    {QUEST_CONFIGS.map((q) => {
+                      const monster = getMonsterData(theme, q.id);
+                      const isSelected = doc.battleMode === 'single' && q.id === doc.selectedMonsterId;
+                      return (
+                        <div
+                          key={q.id}
+                          onClick={() => {
+                            sound.playCoin();
+                            onUpdateGoal(q.wordCount, 'single', q.id);
+                            setIsDropdownOpen(false);
+                          }}
+                          style={{
+                            padding: '6px 8px',
+                            cursor: 'pointer',
+                            fontSize: '0.6rem',
+                            fontFamily: 'var(--font-ui)',
+                            color: isSelected ? 'var(--bg-primary)' : 'var(--text-primary)',
+                            backgroundColor: isSelected ? 'var(--accent-color)' : 'transparent',
+                            transition: 'background-color 0.1s, color 0.1s',
+                            borderRadius: '2px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }
+                          }}
+                        >
+                          <span>Single: {monster.name}</span>
+                          <span style={{ fontSize: '0.55rem', opacity: 0.8 }}>({q.wordCount} words)</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <button
+                className="pixel-btn"
+                onClick={() => {
+                  sound.playCoin();
+                  onToggleDistractionFree();
+                }}
+                style={{ padding: '6px 10px' }}
+                title={isDistractionFree ? 'Show HUD Panels' : 'Distraction-Free Mode'}
+              >
+                {isDistractionFree ? <Eye size={14} /> : <EyeOff size={14} />}
+                <span style={{ fontSize: '0.6rem', marginLeft: '4px' }}>
+                  {isDistractionFree ? 'SHOW HUD' : 'FOCUS'}
+                </span>
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Main Textarea Canvas */}
@@ -320,7 +436,7 @@ export default function Editor({
             outline: 'none',
             resize: 'none',
             fontSize: fontSize,
-            padding: '20px',
+            padding: isMobile ? '10px' : '20px',
             border: 'var(--border-width) var(--border-style) var(--border-color)',
             backgroundColor: 'var(--bg-editor)',
             color: 'var(--text-editor)',
@@ -337,35 +453,39 @@ export default function Editor({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginTop: '12px',
+          marginTop: isMobile ? '6px' : '12px',
           fontSize: '0.65rem',
           color: 'var(--text-secondary)',
           flexWrap: 'wrap',
           gap: '8px',
         }}
       >
-        <div style={{ display: 'flex', gap: '16px' }}>
+        <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <BookOpen size={12} /> {wordCount} Words (Ch)
+            <BookOpen size={12} /> {wordCount} W
           </span>
-          <span>
-            {charCount} Characters
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Clock size={12} /> ~{readTime} Min Read
-          </span>
+          {!isMobile && (
+            <>
+              <span>
+                {charCount} Chars
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Clock size={12} /> ~{readTime} Min
+              </span>
+            </>
+          )}
         </div>
 
         {/* Quest/Goal Progress bar */}
         {(() => {
           const runWords = Math.max(0, totalWordCount - (doc.battleStartWords || 0));
           return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '180px' }}>
-              <span>Quest Goal:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: isMobile ? '120px' : '180px' }}>
+              <span style={{ fontSize: '0.55rem' }}>Goal:</span>
               <div
                 style={{
                   flex: 1,
-                  height: '10px',
+                  height: '8px',
                   backgroundColor: 'var(--bg-secondary)',
                   border: '1px solid var(--border-color)',
                   position: 'relative',
@@ -381,7 +501,7 @@ export default function Editor({
                   }}
                 />
               </div>
-              <span style={{ fontWeight: 'bold', color: runWords >= doc.wordGoal ? 'var(--accent-color)' : 'inherit' }}>
+              <span style={{ fontWeight: 'bold', fontSize: '0.55rem', color: runWords >= doc.wordGoal ? 'var(--accent-color)' : 'inherit' }}>
                 {runWords}/{doc.wordGoal} ({Math.round(Math.min(100, (runWords / doc.wordGoal) * 100))}%)
               </span>
             </div>

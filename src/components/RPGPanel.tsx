@@ -6,7 +6,8 @@ import {
   FANTASY_SHOP_ITEMS, 
   COZY_SHOP_ITEMS, 
   GOTHIC_SHOP_ITEMS, 
-  SPACESHIP_SHOP_ITEMS 
+  SPACESHIP_SHOP_ITEMS,
+  WITCH_SHOP_ITEMS
 } from './ShopPanel';
 
 export interface ThemedMonster {
@@ -117,6 +118,7 @@ interface RPGPanelProps {
   onUpdateGoal?: (goal: number, battleMode?: 'progression' | 'single', selectedMonsterId?: string) => void;
   onAddNormalWords?: (words: number) => void;
   onDealDamage?: (damage: number) => void;
+  isMobile?: boolean;
 }
 
 export default function RPGPanel({
@@ -137,6 +139,7 @@ export default function RPGPanel({
   onUpdateGoal,
   onAddNormalWords,
   onDealDamage,
+  isMobile = false,
 }: RPGPanelProps) {
   const [showChallengeSelect, setShowChallengeSelect] = useState(false);
   const [showGoalSelect, setShowGoalSelect] = useState(false);
@@ -398,9 +401,10 @@ export default function RPGPanel({
     if (!monsterData) return null;
     const type = monsterData.monsterType;
 
+    const monsterSize = isMobile ? '80px' : '120px';
     const baseStyle = {
-      width: '120px',
-      height: '120px',
+      width: monsterSize,
+      height: monsterSize,
       transition: 'transform 0.15s',
       transform: isHitting ? 'scale(0.9) rotate(5deg)' : 'scale(1)',
       filter: isHitting ? 'brightness(1.5) sepia(1) saturate(5) hue-rotate(330deg)' : 'none',
@@ -733,88 +737,139 @@ export default function RPGPanel({
   };
 
   return (
-    <div className="rpg-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '12px' }}>
+    <div className="rpg-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: isMobile ? '6px' : '12px' }}>
       
-      {/* Character Info Card */}
-      <div className="pixel-panel crt-glow" style={{ marginBottom: '12px' }}>
-        <div className="pixel-panel-header">{getClassName()}</div>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {/* Level & XP */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 'bold' }}>
-            <span>LV. {stats.level}</span>
-            <span style={{ color: 'var(--accent-color)' }}>XP: {stats.xp}/{stats.maxXp}</span>
-          </div>
-          
-          {/* XP Progress Bar */}
-          <div style={{ height: '8px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
-            <div 
-              style={{ 
-                width: `${Math.min(100, (stats.xp / stats.maxXp) * 100)}%`, 
-                height: '100%', 
-                backgroundColor: 'var(--accent-color)',
-                transition: 'width 0.3s' 
-              }} 
-            />
-          </div>
-
-          {/* Stats & Gold */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginTop: '4px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Coins size={12} style={{ color: '#eab308' }} />
-              <span>{stats.gold} Gold</span>
-            </div>
+      {isMobile ? (
+        /* Mobile Compact Stats Strip */
+        <div className="pixel-panel crt-glow" style={{ marginBottom: '6px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 2px' }}>
+            {/* Level */}
+            <span style={{ fontSize: '0.65rem', fontWeight: 'bold', flexShrink: 0 }}>LV.{stats.level}</span>
             
-            <button className="pixel-btn" onClick={onSwitchToShop} style={{ padding: '2px 6px', fontSize: '0.55rem' }}>
+            {/* XP Bar */}
+            <div style={{ flex: 1, height: '6px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', overflow: 'hidden', minWidth: 0 }}>
+              <div style={{ width: `${Math.min(100, (stats.xp / stats.maxXp) * 100)}%`, height: '100%', backgroundColor: 'var(--accent-color)', transition: 'width 0.3s' }} />
+            </div>
+
+            {/* Gold */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.6rem', flexShrink: 0 }}>
+              <Coins size={10} style={{ color: '#eab308' }} />
+              <span>{stats.gold}g</span>
+            </div>
+
+            {/* Inventory icons (compact) */}
+            {stats.inventory.length > 0 && (
+              <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
+                {stats.inventory.slice(0, 4).map((item) => {
+                  const allShopItems = [
+                    ...FANTASY_SHOP_ITEMS,
+                    ...COZY_SHOP_ITEMS,
+                    ...GOTHIC_SHOP_ITEMS,
+                    ...SPACESHIP_SHOP_ITEMS,
+                    ...WITCH_SHOP_ITEMS,
+                  ];
+                  const details = allShopItems.find((i) => i.id === item);
+                  return (
+                    <span key={item} title={details?.name || 'Item'} style={{ fontSize: '0.85rem' }}>
+                      {details?.icon || '🎁'}
+                    </span>
+                  );
+                })}
+                {stats.inventory.length > 4 && <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)' }}>+{stats.inventory.length - 4}</span>}
+              </div>
+            )}
+
+            {/* Shop button */}
+            <button className="pixel-btn" onClick={onSwitchToShop} style={{ padding: '2px 5px', fontSize: '0.5rem', flexShrink: 0 }}>
               SHOP
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Equipment & Items Inventory */}
-      <div className="pixel-panel" style={{ marginBottom: '12px', flexShrink: 0 }}>
-        <div className="pixel-panel-header" style={{ fontSize: '0.65rem' }}>Inventory</div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', minHeight: '32px' }}>
-          {stats.inventory.length === 0 ? (
-            <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', padding: '6px 0' }}>
-              No items equipped. Visit the shop!
-            </div>
-          ) : (
-            stats.inventory.map((item) => {
-              const allShopItems = [
-                ...FANTASY_SHOP_ITEMS,
-                ...COZY_SHOP_ITEMS,
-                ...GOTHIC_SHOP_ITEMS,
-                ...SPACESHIP_SHOP_ITEMS
-              ];
-              const details = allShopItems.find((i) => i.id === item);
-              const icon = details?.icon || '🎁';
-              const name = details ? `${details.name} (${details.effect})` : 'Item';
-
-              return (
+      ) : (
+        <>
+          {/* Character Info Card */}
+          <div className="pixel-panel crt-glow" style={{ marginBottom: '12px' }}>
+            <div className="pixel-panel-header">{getClassName()}</div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {/* Level & XP */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                <span>LV. {stats.level}</span>
+                <span style={{ color: 'var(--accent-color)' }}>XP: {stats.xp}/{stats.maxXp}</span>
+              </div>
+              
+              {/* XP Progress Bar */}
+              <div style={{ height: '8px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
                 <div 
-                  key={item} 
-                  title={name}
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    border: '2px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-primary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.2rem',
-                    cursor: 'help'
-                  }}
-                >
-                  {icon}
+                  style={{ 
+                    width: `${Math.min(100, (stats.xp / stats.maxXp) * 100)}%`, 
+                    height: '100%', 
+                    backgroundColor: 'var(--accent-color)',
+                    transition: 'width 0.3s' 
+                  }} 
+                />
+              </div>
+
+              {/* Stats & Gold */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginTop: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Coins size={12} style={{ color: '#eab308' }} />
+                  <span>{stats.gold} Gold</span>
                 </div>
-              );
-            })
-          )}
-        </div>
-      </div>
+                
+                <button className="pixel-btn" onClick={onSwitchToShop} style={{ padding: '2px 6px', fontSize: '0.55rem' }}>
+                  SHOP
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Equipment & Items Inventory */}
+          <div className="pixel-panel" style={{ marginBottom: '12px', flexShrink: 0 }}>
+            <div className="pixel-panel-header" style={{ fontSize: '0.65rem' }}>Inventory</div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', minHeight: '32px' }}>
+              {stats.inventory.length === 0 ? (
+                <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', padding: '6px 0' }}>
+                  No items equipped. Visit the shop!
+                </div>
+              ) : (
+                stats.inventory.map((item) => {
+                  const allShopItems = [
+                    ...FANTASY_SHOP_ITEMS,
+                    ...COZY_SHOP_ITEMS,
+                    ...GOTHIC_SHOP_ITEMS,
+                    ...SPACESHIP_SHOP_ITEMS,
+                    ...WITCH_SHOP_ITEMS,
+                  ];
+                  const details = allShopItems.find((i) => i.id === item);
+                  const icon = details?.icon || '🎁';
+                  const name = details ? `${details.name} (${details.effect})` : 'Item';
+
+                  return (
+                    <div 
+                      key={item} 
+                      title={name}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        border: '2px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.2rem',
+                        cursor: 'help'
+                      }}
+                    >
+                      {icon}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Combat Screen / Quest details */}
       <div className="pixel-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -944,7 +999,7 @@ export default function RPGPanel({
 
             {/* Battle Screen background */}
             <div
-              className={`pixel-panel ${isHitting ? 'shake-animation' : ''} ${isMonsterDead ? 'flash-green-animation' : ''}`}
+              className={`pixel-panel battle-monster-area ${isHitting ? 'shake-animation' : ''} ${isMonsterDead ? 'flash-green-animation' : ''}`}
               style={{
                 flex: 1,
                 backgroundColor: 'var(--bg-primary)',

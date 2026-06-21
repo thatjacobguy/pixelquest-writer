@@ -572,12 +572,13 @@ body {
   }
 }
 
+
 /* Responsive Mobile & Tablet Rules */
 @media (max-width: 900px) {
   .app-container {
     grid-template-columns: 1fr !important;
-    grid-template-rows: 60px 1fr 55px !important;
-    height: 100vh;
+    grid-template-rows: 50px 1fr 55px !important;
+    height: 100dvh;
     overflow: hidden;
   }
 
@@ -586,12 +587,31 @@ body {
     border-right: none !important;
     width: 100% !important;
     height: 100% !important;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* App header on mobile: compact, no overflow */
+  .app-header {
+    height: 50px !important;
+    padding: 0 10px !important;
+    overflow: hidden;
+  }
+
+  .header-controls {
+    gap: 6px !important;
   }
 
   /* Adjust headers inside panels on mobile */
   .pixel-panel-header {
     font-size: 0.65rem !important;
     padding: 6px 8px !important;
+  }
+
+  /* Reduce default pixel-btn padding on mobile but allow overrides */
+  .pixel-btn {
+    padding: 5px 7px !important;
+    font-size: 0.6rem !important;
   }
 
   /* Fixed mobile nav bar styles */
@@ -616,25 +636,32 @@ body {
     z-index: 999;
   }
 
-  /* Shrink some buttons or fonts for small screen real estate */
-  .pixel-btn {
-    padding: 6px 8px !important;
-    font-size: 0.6rem !important;
+  /* Editor textarea should fill available height */
+  .editor-panel textarea {
+    flex: 1 !important;
+    min-height: 0 !important;
+    font-size: 1rem !important;
+    -webkit-text-size-adjust: none !important;
   }
 
-  .logo-text {
-    font-size: 0.9rem !important;
-  }
-
-  .header-controls {
-    gap: 8px !important;
+  /* Monster battle area: compact on mobile */
+  .battle-monster-area {
+    flex-shrink: 1 !important;
+    min-height: 0 !important;
   }
 
   .pixel-dialog {
     width: 95% !important;
     max-width: 400px !important;
   }
+
+  /* Stop body from overscrolling */
+  body {
+    overscroll-behavior: none;
+    touch-action: pan-y;
+  }
 }
+
 
 
 

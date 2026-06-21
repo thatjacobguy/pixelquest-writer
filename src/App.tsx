@@ -1304,8 +1304,8 @@ export default function App() {
       {/* Header bar */}
       <header className="app-header crt-glow">
         <div className="logo-section">
-          <span style={{ fontSize: '1.4rem' }}>⚔️</span>
-          <span className="logo-text">Pixel Writer</span>
+          <span style={{ fontSize: isMobile ? '1.2rem' : '1.4rem' }}>⚔️</span>
+          {!isMobile && <span className="logo-text">Pixel Writer</span>}
         </div>
 
         <div className="header-controls">
@@ -1317,13 +1317,15 @@ export default function App() {
             title={musicEnabled ? 'Stop ambient music' : 'Start ambient music'}
           >
             <Music size={14} />
-            <span style={{ fontSize: '0.6rem', marginLeft: '4px' }}>
-              {musicEnabled ? 'MUSIC: ON' : 'MUSIC: OFF'}
-            </span>
+            {!isMobile && (
+              <span style={{ fontSize: '0.6rem', marginLeft: '4px' }}>
+                {musicEnabled ? 'MUSIC: ON' : 'MUSIC: OFF'}
+              </span>
+            )}
           </button>
 
           {/* Music Volume Slider */}
-          {musicEnabled && (
+          {musicEnabled && !isMobile && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <input
                 type="range"
@@ -1343,118 +1345,120 @@ export default function App() {
           )}
 
           {/* Theme Selector */}
-          <div ref={themeDropdownRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginRight: '6px' }}>Theme:</span>
-            <button
-              className="pixel-btn"
-              onClick={() => {
-                sound.playCoin();
-                setIsThemeDropdownOpen(!isThemeDropdownOpen);
-              }}
-              style={{
-                padding: '4px 8px',
-                fontSize: '0.65rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                minWidth: '130px',
-                justifyContent: 'space-between',
-              }}
-            >
-              <span>{theme === 'cozy' ? 'Cozy Cottage' : theme === 'horror' ? 'Gothic' : theme === 'witch' ? 'Wicked Witch' : theme.charAt(0).toUpperCase() + theme.slice(1)}</span>
-              <ChevronDown size={10} style={{ transform: isThemeDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-            </button>
-
-            {isThemeDropdownOpen && (
-              <div
-                className="pixel-panel crt-glow"
+          {!isMobile && (
+            <div ref={themeDropdownRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginRight: '6px' }}>Theme:</span>
+              <button
+                className="pixel-btn"
+                onClick={() => {
+                  sound.playCoin();
+                  setIsThemeDropdownOpen(!isThemeDropdownOpen);
+                }}
                 style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 4px)',
-                  right: 0,
-                  width: '150px',
-                  backgroundColor: 'var(--panel-bg)',
-                  zIndex: 2000,
-                  padding: '4px',
+                  padding: '4px 8px',
+                  fontSize: '0.65rem',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '2px',
+                  alignItems: 'center',
+                  gap: '6px',
+                  minWidth: '130px',
+                  justifyContent: 'space-between',
                 }}
               >
-                {[
-                  { value: 'fantasy', label: 'Fantasy', locked: false },
-                  { value: 'cozy', label: 'Cozy Cottage', locked: false },
-                  { value: 'horror', label: 'Gothic', locked: false },
-                  { value: 'spaceship', label: 'Spaceship', locked: false },
-                  { value: 'witch', label: 'Wicked Witch', locked: !isWitchUnlocked() },
-                ].map((item) => {
-                  const isSelected = item.value === theme;
-                  const labelText = item.locked ? `🔒 ${item.label}` : item.label;
-                  return (
-                    <div
-                      key={item.value}
-                      onClick={() => {
-                        if (item.locked) {
-                          sound.playError();
-                          const maxSlain = getMaxMonstersSlain();
-                          if (maxSlain >= 3) {
-                            setIsThemeDropdownOpen(false);
-                            setShowReviewPopup(true);
-                          } else {
-                            setCustomAlert({
-                              title: '🔒 Coven Sealed',
-                              message: `The Coven has sealed this theme! You have slain ${maxSlain}/3 beasts. Defeat 3 swamp beasts to earn their favor and brew a review to unlock the Wicked Witch theme.`,
-                              buttonText: 'Flee',
-                              themeClass: 'theme-witch'
-                            });
+                <span>{theme === 'cozy' ? 'Cozy Cottage' : theme === 'horror' ? 'Gothic' : theme === 'witch' ? 'Wicked Witch' : theme.charAt(0).toUpperCase() + theme.slice(1)}</span>
+                <ChevronDown size={10} style={{ transform: isThemeDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+              </button>
+
+              {isThemeDropdownOpen && (
+                <div
+                  className="pixel-panel crt-glow"
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 4px)',
+                    right: 0,
+                    width: '150px',
+                    backgroundColor: 'var(--panel-bg)',
+                    zIndex: 2000,
+                    padding: '4px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px',
+                  }}
+                >
+                  {[
+                    { value: 'fantasy', label: 'Fantasy', locked: false },
+                    { value: 'cozy', label: 'Cozy Cottage', locked: false },
+                    { value: 'horror', label: 'Gothic', locked: false },
+                    { value: 'spaceship', label: 'Spaceship', locked: false },
+                    { value: 'witch', label: 'Wicked Witch', locked: !isWitchUnlocked() },
+                  ].map((item) => {
+                    const isSelected = item.value === theme;
+                    const labelText = item.locked ? `🔒 ${item.label}` : item.label;
+                    return (
+                      <div
+                        key={item.value}
+                        onClick={() => {
+                          if (item.locked) {
+                            sound.playError();
+                            const maxSlain = getMaxMonstersSlain();
+                            if (maxSlain >= 3) {
+                              setIsThemeDropdownOpen(false);
+                              setShowReviewPopup(true);
+                            } else {
+                              setCustomAlert({
+                                title: '🔒 Coven Sealed',
+                                message: `The Coven has sealed this theme! You have slain ${maxSlain}/3 beasts. Defeat 3 swamp beasts to earn their favor and brew a review to unlock the Wicked Witch theme.`,
+                                buttonText: 'Flee',
+                                themeClass: 'theme-witch'
+                              });
+                            }
+                            return;
                           }
-                          return;
-                        }
-                        sound.playCoin();
-                        const nextTheme = item.value;
-                        // Save current stats before switching (user-scoped)
-                        if (activeUser && theme) {
-                          localStorage.setItem(`pixelquest_${activeUser}_stats_${theme}`, JSON.stringify(stats));
-                        }
-                        // Load next stats (user-scoped)
-                        const userKey = activeUser ? `pixelquest_${activeUser}_stats_${nextTheme}` : `pixelquest_stats_${nextTheme}`;
-                        const saved = localStorage.getItem(userKey);
-                        const nextStats = saved ? { ...DEFAULT_STATS, ...JSON.parse(saved) } : { ...DEFAULT_STATS };
-                        if (nextStats.normalWordsWritten === undefined) {
-                          nextStats.normalWordsWritten = 0;
-                        }
-                        setStats(nextStats);
-                        setTheme(nextTheme);
-                        setIsThemeDropdownOpen(false);
-                      }}
-                      style={{
-                        padding: '6px 8px',
-                        cursor: 'pointer',
-                        fontSize: '0.65rem',
-                        fontFamily: 'var(--font-ui)',
-                        color: isSelected ? 'var(--bg-primary)' : 'var(--text-primary)',
-                        backgroundColor: isSelected ? 'var(--accent-color)' : 'transparent',
-                        borderRadius: '2px',
-                        transition: 'background-color 0.1s, color 0.1s',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }
-                      }}
-                    >
-                      {labelText}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                          sound.playCoin();
+                          const nextTheme = item.value;
+                          // Save current stats before switching (user-scoped)
+                          if (activeUser && theme) {
+                            localStorage.setItem(`pixelquest_${activeUser}_stats_${theme}`, JSON.stringify(stats));
+                          }
+                          // Load next stats (user-scoped)
+                          const userKey = activeUser ? `pixelquest_${activeUser}_stats_${nextTheme}` : `pixelquest_stats_${nextTheme}`;
+                          const saved = localStorage.getItem(userKey);
+                          const nextStats = saved ? { ...DEFAULT_STATS, ...JSON.parse(saved) } : { ...DEFAULT_STATS };
+                          if (nextStats.normalWordsWritten === undefined) {
+                            nextStats.normalWordsWritten = 0;
+                          }
+                          setStats(nextStats);
+                          setTheme(nextTheme);
+                          setIsThemeDropdownOpen(false);
+                        }}
+                        style={{
+                          padding: '6px 8px',
+                          cursor: 'pointer',
+                          fontSize: '0.65rem',
+                          fontFamily: 'var(--font-ui)',
+                          color: isSelected ? 'var(--bg-primary)' : 'var(--text-primary)',
+                          backgroundColor: isSelected ? 'var(--accent-color)' : 'transparent',
+                          borderRadius: '2px',
+                          transition: 'background-color 0.1s, color 0.1s',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }
+                        }}
+                      >
+                        {labelText}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Settings button */}
           <button
@@ -1480,7 +1484,7 @@ export default function App() {
               style={{ padding: '6px 10px' }}
               title="Logout"
             >
-              <span style={{ fontSize: '0.6rem', marginRight: '4px' }}>{activeUser.toUpperCase()}</span>
+              {!isMobile && <span style={{ fontSize: '0.6rem', marginRight: '4px' }}>{activeUser.toUpperCase()}</span>}
               <LogOut size={14} />
             </button>
           )}
@@ -1507,6 +1511,7 @@ export default function App() {
               onRenameChapter={handleRenameChapter}
               onDeleteChapter={handleDeleteChapter}
               onForceSave={handleForceSave}
+              isMobile={isMobile}
             />
           )}
           {activeView === 'editor' && (
@@ -1519,6 +1524,7 @@ export default function App() {
               fontSize={fontSize}
               onUpdateFontSize={setFontSize}
               theme={theme}
+              isMobile={isMobile}
             />
           )}
           {activeView === 'shop' && (
@@ -1527,6 +1533,7 @@ export default function App() {
               onBuyItem={handleBuyItem}
               onCloseShop={() => setActiveView('editor')}
               theme={theme}
+              isMobile={isMobile}
             />
           )}
           {activeView === 'rpg' && (
@@ -1548,6 +1555,7 @@ export default function App() {
               onUpdateGoal={handleUpdateGoal}
               onAddNormalWords={handleAddNormalWords}
               onDealDamage={handleDealDamage}
+              isMobile={isMobile}
             />
           )}
 
@@ -1669,6 +1677,27 @@ export default function App() {
         onToggleSound={handleToggleSound}
         onExportData={handleExportData}
         onImportData={handleImportData}
+        isMobile={isMobile}
+        theme={theme}
+        onThemeChange={(nextTheme) => {
+          // Save current stats before switching (user-scoped)
+          if (activeUser && theme) {
+            localStorage.setItem(`pixelquest_${activeUser}_stats_${theme}`, JSON.stringify(stats));
+          }
+          // Load next stats (user-scoped)
+          const userKey = activeUser ? `pixelquest_${activeUser}_stats_${nextTheme}` : `pixelquest_stats_${nextTheme}`;
+          const saved = localStorage.getItem(userKey);
+          const nextStats = saved ? { ...DEFAULT_STATS, ...JSON.parse(saved) } : { ...DEFAULT_STATS };
+          if (nextStats.normalWordsWritten === undefined) {
+            nextStats.normalWordsWritten = 0;
+          }
+          setStats(nextStats);
+          setTheme(nextTheme);
+        }}
+        isWitchUnlocked={isWitchUnlocked}
+        getMaxMonstersSlain={getMaxMonstersSlain}
+        setShowReviewPopup={setShowReviewPopup}
+        setCustomAlert={setCustomAlert}
       />
 
       {/* Level Up congratulatory popup */}

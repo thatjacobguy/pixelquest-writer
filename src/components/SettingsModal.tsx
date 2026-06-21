@@ -9,6 +9,13 @@ interface SettingsModalProps {
   onToggleSound: () => void;
   onExportData: () => void;
   onImportData: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  isMobile?: boolean;
+  theme?: string;
+  onThemeChange?: (theme: string) => void;
+  isWitchUnlocked?: () => boolean;
+  getMaxMonstersSlain?: () => number;
+  setShowReviewPopup?: (show: boolean) => void;
+  setCustomAlert?: (alert: any) => void;
 }
 
 export default function SettingsModal({
@@ -18,6 +25,13 @@ export default function SettingsModal({
   onToggleSound,
   onExportData,
   onImportData,
+  isMobile = false,
+  theme,
+  onThemeChange,
+  isWitchUnlocked,
+  getMaxMonstersSlain,
+  setShowReviewPopup,
+  setCustomAlert,
 }: SettingsModalProps) {
   if (!isOpen) return null;
 
@@ -42,6 +56,50 @@ export default function SettingsModal({
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
+          {/* Mobile Theme Selector */}
+          {isMobile && theme && onThemeChange && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.8rem' }}>Active Theme:</span>
+              <select
+                className="pixel-input"
+                value={theme}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const isWitchLocked = val === 'witch' && isWitchUnlocked && !isWitchUnlocked();
+                  if (isWitchLocked) {
+                    sound.playError();
+                    const maxSlain = getMaxMonstersSlain ? getMaxMonstersSlain() : 0;
+                    if (maxSlain >= 3) {
+                      if (setShowReviewPopup) {
+                        onClose();
+                        setShowReviewPopup(true);
+                      }
+                    } else {
+                      if (setCustomAlert) {
+                        setCustomAlert({
+                          title: '🔒 Coven Sealed',
+                          message: `The Coven has sealed this theme! You have slain ${maxSlain}/3 beasts. Defeat 3 swamp beasts to earn their favor and brew a review to unlock the Wicked Witch theme.`,
+                          buttonText: 'Flee',
+                          themeClass: 'theme-witch'
+                        });
+                      }
+                    }
+                    return;
+                  }
+                  sound.playCoin();
+                  onThemeChange(val);
+                }}
+                style={{ padding: '4px 6px', fontSize: '0.75rem', cursor: 'pointer' }}
+              >
+                <option value="fantasy">Fantasy</option>
+                <option value="cozy">Cozy Cottage</option>
+                <option value="horror">Gothic</option>
+                <option value="spaceship">Spaceship</option>
+                <option value="witch">Wicked Witch</option>
+              </select>
+            </div>
+          )}
+
           {/* Sound Settings */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.8rem' }}>Retro Sound Synthesizer:</span>

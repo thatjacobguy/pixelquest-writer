@@ -22,6 +22,7 @@ interface SidebarProps {
   onRenameChapter: (docId: string, chapterId: string, newTitle: string) => void;
   onDeleteChapter: (docId: string, chapterId: string) => void;
   onForceSave: () => void;
+  isMobile?: boolean;
 }
 
 export default function Sidebar({
@@ -41,6 +42,7 @@ export default function Sidebar({
   onRenameChapter,
   onDeleteChapter,
   onForceSave,
+  isMobile = false,
 }: SidebarProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
@@ -111,60 +113,62 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Local Folder Sync Panel */}
-      <div className="pixel-panel" style={{ margin: '0 8px 8px 8px', padding: '8px', fontSize: '0.7rem' }}>
-        <div className="pixel-panel-header" style={{ fontSize: '0.65rem' }}>Local Desktop Export</div>
-        
-        {localFolderState === 'connected' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-color)', overflow: 'hidden' }}>
-              <Folder size={14} style={{ flexShrink: 0 }} />
-              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={localFolderName || ''}>
-                {localFolderName || 'Desktop Folder'}
-              </span>
+      {/* Local Folder Sync Panel - hidden on mobile (File System Access API not supported on iOS) */}
+      {!isMobile && (
+        <div className="pixel-panel" style={{ margin: '0 8px 8px 8px', padding: '8px', fontSize: '0.7rem' }}>
+          <div className="pixel-panel-header" style={{ fontSize: '0.65rem' }}>Local Desktop Export</div>
+          
+          {localFolderState === 'connected' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-color)', overflow: 'hidden' }}>
+                <Folder size={14} style={{ flexShrink: 0 }} />
+                <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={localFolderName || ''}>
+                  {localFolderName || 'Desktop Folder'}
+                </span>
+              </div>
+              
+              <button 
+                className="pixel-btn" 
+                onClick={onUnlinkFolder}
+                style={{ width: '100%', padding: '4px 6px', fontSize: '0.6rem', color: 'var(--text-secondary)' }}
+              >
+                UNLINK FOLDER
+              </button>
             </div>
-            
-            <button 
-              className="pixel-btn" 
-              onClick={onUnlinkFolder}
-              style={{ width: '100%', padding: '4px 6px', fontSize: '0.6rem', color: 'var(--text-secondary)' }}
-            >
-              UNLINK FOLDER
-            </button>
-          </div>
-        )}
+          )}
 
-        {localFolderState === 'needs_reauth' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#eab308', overflow: 'hidden' }}>
-              <Folder size={14} style={{ flexShrink: 0 }} />
-              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={localFolderName || ''}>
-                {localFolderName || 'Desktop Folder'}
-              </span>
+          {localFolderState === 'needs_reauth' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#eab308', overflow: 'hidden' }}>
+                <Folder size={14} style={{ flexShrink: 0 }} />
+                <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={localFolderName || ''}>
+                  {localFolderName || 'Desktop Folder'}
+                </span>
+              </div>
+              
+              <button 
+                className="pixel-btn pixel-btn-accent" 
+                onClick={onReauthFolder}
+                style={{ width: '100%', padding: '4px 6px', fontSize: '0.6rem' }}
+              >
+                RE-AUTHORIZE
+              </button>
             </div>
-            
-            <button 
-              className="pixel-btn pixel-btn-accent" 
-              onClick={onReauthFolder}
-              style={{ width: '100%', padding: '4px 6px', fontSize: '0.6rem' }}
-            >
-              RE-AUTHORIZE
-            </button>
-          </div>
-        )}
+          )}
 
-        {localFolderState === 'none' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <button 
-              className="pixel-btn" 
-              onClick={onLinkFolder}
-              style={{ width: '100%', padding: '4px 6px', fontSize: '0.6rem' }}
-            >
-              LINK LOCAL FOLDER
-            </button>
-          </div>
-        )}
-      </div>
+          {localFolderState === 'none' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button 
+                className="pixel-btn" 
+                onClick={onLinkFolder}
+                style={{ width: '100%', padding: '4px 6px', fontSize: '0.6rem' }}
+              >
+                LINK LOCAL FOLDER
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Document Control Header */}
       <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
